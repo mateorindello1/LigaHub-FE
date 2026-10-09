@@ -1,0 +1,50 @@
+/*
+ * Estilos de Syncfusion, tema Material 3: solo los de los componentes que usa la aplicación.
+ * El archivo completo (styles/material3.css) trae todos los componentes y pesa casi 5 MB.
+ *
+ * Al usar un componente nuevo de Syncfusion, agregar acá su carpeta de estilos
+ * (node_modules/@syncfusion/ej2-material3-theme/styles/<componente>/<componente>.css).
+ * "base" va primero: tiene las variables de color, la tipografía y los íconos.
+ */
+@import '@syncfusion/ej2-material3-theme/styles/base/base.css';
+
+/* Botones y controles de selección */
+@import '@syncfusion/ej2-material3-theme/styles/button/button.css';
+@import '@syncfusion/ej2-material3-theme/styles/check-box/check-box.css';
+@import '@syncfusion/ej2-material3-theme/styles/radio-button/radio-button.css';
+@import '@syncfusion/ej2-material3-theme/styles/switch/switch.css';
+@import '@syncfusion/ej2-material3-theme/styles/split-button/split-button.css';
+@import '@syncfusion/ej2-material3-theme/styles/drop-down-button/drop-down-button.css';
+
+/* Campos de formulario */
+@import '@syncfusion/ej2-material3-theme/styles/input/input.css';
+@import '@syncfusion/ej2-material3-theme/styles/textbox/textbox.css';
+@import '@syncfusion/ej2-material3-theme/styles/numerictextbox/numerictextbox.css';
+@import '@syncfusion/ej2-material3-theme/styles/drop-down-base/drop-down-base.css';
+@import '@syncfusion/ej2-material3-theme/styles/drop-down-list/drop-down-list.css';
+@import '@syncfusion/ej2-material3-theme/styles/calendar/calendar.css';
+@import '@syncfusion/ej2-material3-theme/styles/datepicker/datepicker.css';
+@import '@syncfusion/ej2-material3-theme/styles/timepicker/timepicker.css';
+@import '@syncfusion/ej2-material3-theme/styles/datetimepicker/datetimepicker.css';
+
+/* Ventanas y avisos */
+@import '@syncfusion/ej2-material3-theme/styles/popup/popup.css';
+@import '@syncfusion/ej2-material3-theme/styles/spinner/spinner.css';
+@import '@syncfusion/ej2-material3-theme/styles/dialog/dialog.css';
+@import '@syncfusion/ej2-material3-theme/styles/tooltip/tooltip.css';
+@import '@syncfusion/ej2-material3-theme/styles/toast/toast.css';
+
+/* Navegación */
+@import '@syncfusion/ej2-material3-theme/styles/appbar/appbar.css';
+@import '@syncfusion/ej2-material3-theme/styles/toolbar/toolbar.css';
+@import '@syncfusion/ej2-material3-theme/styles/tab/tab.css';
+
+/* Grilla (con su paginador y el filtro tipo Excel) */
+@import '@syncfusion/ej2-material3-theme/styles/list-view/list-view.css';
+@import '@syncfusion/ej2-material3-theme/styles/pager/pager.css';
+@import '@syncfusion/ej2-material3-theme/styles/excel-filter/excel-filter.css';
+@import '@syncfusion/ej2-material3-theme/styles/grid/grid.css';
+
+/* Presentación */
+@import '@syncfusion/ej2-material3-theme/styles/card/card.css';
+@import '@syncfusion/ej2-material3-theme/styles/badge/badge.css';

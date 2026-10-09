@@ -15,7 +15,7 @@ El plan del backend está en [LigaHub-BE/docs/plan-de-desarrollo.md](https://git
 | 0 | [Repositorio local](#etapa-0--repositorio-local) | Hecha |
 | 1 | [Decisiones de stack](#etapa-1--decisiones-de-stack) | Hecha |
 | 2 | [Andamiaje del proyecto](#etapa-2--andamiaje-del-proyecto) | Hecha |
-| 3 | [Base de la aplicación: layout, rutas, servicio de API y tipos](#etapa-3--base-de-la-aplicación-layout-rutas-servicio-de-api-y-tipos) | Pendiente |
+| 3 | [Base de la aplicación: layout, rutas, servicio de API y tipos](#etapa-3--base-de-la-aplicación-layout-rutas-servicio-de-api-y-tipos) | Hecha |
 | 4 | [Pantallas CRUD: Torneo y Equipo](#etapa-4--pantallas-crud-torneo-y-equipo) | Pendiente |
 | 5 | [Pantalla CRUD dependiente: Inscripción de equipo](#etapa-5--pantalla-crud-dependiente-inscripción-de-equipo) | Pendiente |
 | 6 | [Listado con filtro y detalle](#etapa-6--listado-con-filtro-y-detalle) | Pendiente |
@@ -158,13 +158,127 @@ Y abrir `http://localhost:5173`: se ve la pantalla de ejemplo de Vite. `pnpm bui
 
 ## Etapa 3 — Base de la aplicación: layout, rutas, servicio de API y tipos
 
-**Estado:** Pendiente
+**Estado:** Hecha (2026-10-09)
 
-- Layout **mobile-first** que se vea bien en los tres breakpoints exigidos: SM, MD y LG. La grilla de Syncfusion tiene un modo adaptativo para pantallas chicas, pero hay que verificar los tres tamaños.
-- Registro de la licencia de Syncfusion y carga del tema.
-- Rutas de la aplicación.
-- Servicio de API con la URL del backend configurable por ambiente.
-- Tipos e interfaces del dominio (Torneo, Equipo, Inscripción…), que representan los modelos de datos, como pide la cátedra.
+**Objetivo:** la estructura sobre la que se construyen todas las pantallas: licencia y tema de Syncfusion, layout mobile-first con menú, rutas, cliente de API con el manejo de errores del backend, servicios, tipos del dominio, notificaciones y una primera pantalla que usa la API de punta a punta.
+
+### Estructura de carpetas
+
+```
+src/
+├── api/
+│   ├── claves-consulta.ts          Claves de TanStack Query (identifican cada dato en la caché)
+│   ├── cliente-api.ts              fetch con URL base, JSON y conversión de errores
+│   └── error-api.ts                Clase ErrorApi (estado, mensaje, detalles por campo)
+├── componentes/
+│   ├── comunes/                    Cargando, MensajeError (con reintentar), EncabezadoPagina
+│   ├── layout/                     Layout (barra + menú + contenido) y MenuNavegacion
+│   ├── notificaciones/             ProveedorNotificaciones (Toast de Syncfusion) y useNotificaciones
+│   └── torneos/                    TarjetaTorneo
+├── config/entorno.ts               URL de la API leída de VITE_API_URL
+├── estilos/syncfusion.css          Estilos del tema, solo de los componentes que se usan
+├── modelos/                        Tipos del dominio: torneo, equipo, inscripción, posiciones, fixture, estados
+├── paginas/                        InicioPagina, EnConstruccionPagina, NoEncontradaPagina
+├── servicios/                      Un servicio por recurso de la API
+├── App.tsx                         Proveedores globales (TanStack Query, notificaciones) y router
+├── index.css                       Estilos globales y breakpoints
+├── main.tsx                        Licencia de Syncfusion, estilos y montaje de la app
+├── rutas.tsx                       Definición de las rutas
+└── vite-env.d.ts                   Tipos de las variables VITE_
+```
+
+Comparado con tu MVVM en Blazor: `modelos/` son los Models, `servicios/` son los servicios que llaman a la API, y la lógica de cada pantalla (lo que haría el ViewModel) va en la propia página o en un hook propio cuando crece.
+
+### Conceptos
+
+- **Componentes funcionales y props:** cada componente es una función que recibe un objeto de props y devuelve lo que se dibuja (JSX). Las props son los `[Parameter]` de Blazor, y una prop que es función (como `onNavegar` en `MenuNavegacion` u `onReintentar` en `MensajeError`) es el `EventCallback`. **Son la "input property" y la "output property" que pide la cátedra.**
+- **`useState`:** estado del componente (por ejemplo, `menuAbierto` en el Layout). Al cambiarlo con su función (`setMenuAbierto`), React vuelve a dibujar el componente, que es lo que en Blazor hace `StateHasChanged`. Es la "reactividad ante un estado" que pide la cátedra.
+- **Contexto (`createContext` + `useContext`):** comparte algo con todos los componentes de abajo sin pasarlo por props. Se usa para las notificaciones: cualquier pantalla llama a `useNotificaciones()`, como un servicio inyectado con `@inject`.
+- **Hooks:** funciones que empiezan con `use` y usan estado o contexto (`useState`, `useQuery`, `useNotificaciones`). Tienen una regla: se llaman siempre en el mismo orden, en el cuerpo del componente, nunca dentro de un `if`. El linter la controla.
+- **`useQuery` (TanStack Query):** pide los datos con el servicio, los guarda en caché bajo una clave y expone `data`, `isPending` y `error`. Reemplaza el `OnInitializedAsync` + `IsBusy` + try/catch de un ViewModel. La clave (`['torneos']`) sirve para invalidar los datos después de guardar.
+- **`signal` (cancelación):** TanStack Query pasa una señal a cada pedido y lo cancela si el componente se desmonta. Es el `CancellationToken` de .NET.
+- **Rutas anidadas y `<Outlet />`:** todas las rutas se dibujan dentro del `Layout`, en el lugar del `<Outlet />`. Equivale a `@Body` en el `MainLayout.razor`. `NavLink` marca la opción del menú de la pantalla actual.
+- **"Enums" sin `enum`:** en el frontend no se puede usar `enum` (`erasableSyntaxOnly`). Se usa un objeto `as const` y un tipo con el mismo nombre:
+
+  ```ts
+  export const EstadoTorneo = { Inscripcion: 1, EnCurso: 2, Finalizado: 3 } as const;
+  export type EstadoTorneo = (typeof EstadoTorneo)[keyof typeof EstadoTorneo]; // 1 | 2 | 3
+  ```
+
+  Se usa igual que un enum (`EstadoTorneo.EnCurso`), y el tipo solo admite los valores válidos.
+- **Fechas:** la API devuelve las fechas en UTC como texto ISO 8601 (`"2026-10-10T18:00:00.000Z"`). En los tipos quedan como `string` y se convierten a hora local al mostrarlas.
+
+### Manejo de errores de la API
+
+El cliente (`cliente-api.ts`) centraliza los pedidos:
+
+| Situación | Qué hace |
+|:--|:--|
+| Respuesta 2xx | Devuelve el JSON convertido al tipo pedido. Con 204 (borrados), no devuelve nada |
+| Respuesta 4xx o 5xx | Lanza un `ErrorApi` con el `mensaje` y los `detalles` por campo que arma el backend |
+| Servidor caído o sin conexión | Lanza un `ErrorApi` con estado 0 y "No se pudo conectar con el servidor…" |
+| Pedido cancelado | Lo deja pasar sin convertirlo en error |
+
+Configuración de TanStack Query (`App.tsx`):
+- **Datos frescos por 30 segundos:** en ese tiempo no se vuelven a pedir.
+- **Errores 4xx:** no se reintentan (repetir el pedido daría lo mismo).
+- **Errores de conexión o 5xx:** se reintentan hasta 2 veces.
+
+> **Reintentos y pestaña oculta:** TanStack Query pausa los reintentos mientras la página no está visible y los retoma al volver. Con la página visible, un error de conexión se muestra a los pocos segundos (después de los dos reintentos) con el botón "Reintentar".
+
+Para avisar éxitos y errores de las operaciones (guardar, borrar) está `useNotificaciones()`, con un `ToastComponent` de Syncfusion abajo al centro.
+
+### Layout mobile-first y breakpoints
+
+Los estilos base son para celular, y las media queries agregan lo de pantallas más grandes:
+
+| Breakpoint | Ancho | Menú | Tarjetas |
+|:--|:--|:--|:--|
+| SM | hasta 767 px | Oculto. Se abre con el botón ☰ sobre un fondo oscuro y se cierra al elegir una opción o tocar el fondo | 1 columna |
+| MD | 768 a 991 px | Igual que SM | 2 columnas |
+| LG | desde 992 px | Fijo a la izquierda; desaparece el botón ☰ | 3 columnas |
+
+La barra superior es el `AppBarComponent` de Syncfusion. Los colores propios (menú, errores, tarjetas) usan las variables del tema (`rgb(var(--color-sf-primary))`), así todo se ve igual que los componentes de Syncfusion.
+
+### Estilos de Syncfusion: solo lo que se usa
+
+El tema completo (`material3.css`) trae los estilos de todos los componentes de Syncfusion y pesaba **4,8 MB**. `src/estilos/syncfusion.css` importa solo los de los componentes que usa la aplicación (base, botones, inputs, desplegables, calendarios, diálogos, avisos, barra, grilla, tarjetas y badges): el CSS bajó a **1,8 MB (223 KB comprimido)**. **Al usar un componente nuevo de Syncfusion, hay que agregar su carpeta de estilos en ese archivo.**
+
+### Rutas
+
+| Ruta | Pantalla |
+|:--|:--|
+| `/` | Inicio: tarjetas de los torneos con su estado y accesos a posiciones y fixture |
+| `/torneos`, `/equipos` | En construcción (etapa 4) |
+| `/posiciones` | En construcción (etapa 6) |
+| `/fixture` | En construcción (etapa 7) |
+| cualquier otra | Página no encontrada |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|:--|:--|
+| `src/main.tsx` | Registra la licencia de Syncfusion (`registerLicense`) e importa los estilos |
+| `src/App.tsx` | Reemplazado: proveedores de TanStack Query y notificaciones, y el router |
+| `src/index.css` | Reemplazado: estilos globales con las variables del tema y los breakpoints |
+| `index.html` | Idioma `es`, título "LigaHub" y descripción |
+| `src/App.css`, `src/assets/`, `public/icons.svg` | Borrados (eran de la pantalla de ejemplo) |
+
+### Cómo probarlo
+
+Con el backend levantado (`pnpm start:dev` en LigaHub-BE, con el seed cargado):
+
+```powershell
+pnpm dev
+```
+
+En `http://localhost:5173` se ven las tarjetas de Apertura (en curso) y Clausura (inscripción abierta). Para ver los breakpoints, en las herramientas de desarrollo del navegador (F12) usar el modo dispositivo y probar 375, 800 y 1280 px de ancho.
+
+Se verificó en el navegador:
+- **Los tres breakpoints:** menú fijo en LG y desplegable en MD y SM; 1, 2 o 3 columnas según el ancho.
+- **El menú en SM:** se abre, marca la opción activa y se cierra al navegar.
+- **La página de ruta inexistente.**
+- **El registro de la licencia:** sin aviso con la clave válida; con una clave inválida aparece el aviso de Syncfusion.
 
 ## Etapa 4 — Pantallas CRUD: Torneo y Equipo
 
