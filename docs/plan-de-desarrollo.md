@@ -13,8 +13,8 @@ El plan del backend está en [LigaHub-BE/docs/plan-de-desarrollo.md](https://git
 | # | Etapa | Estado |
 |:-:|:--|:-:|
 | 0 | [Repositorio local](#etapa-0--repositorio-local) | Hecha |
-| 1 | [Decisiones de stack](#etapa-1--decisiones-de-stack) | En curso |
-| 2 | [Andamiaje del proyecto](#etapa-2--andamiaje-del-proyecto) | Pendiente |
+| 1 | [Decisiones de stack](#etapa-1--decisiones-de-stack) | Hecha |
+| 2 | [Andamiaje del proyecto](#etapa-2--andamiaje-del-proyecto) | Hecha |
 | 3 | [Base de la aplicación: layout, rutas, servicio de API y tipos](#etapa-3--base-de-la-aplicación-layout-rutas-servicio-de-api-y-tipos) | Pendiente |
 | 4 | [Pantallas CRUD: Torneo y Equipo](#etapa-4--pantallas-crud-torneo-y-equipo) | Pendiente |
 | 5 | [Pantalla CRUD dependiente: Inscripción de equipo](#etapa-5--pantalla-crud-dependiente-inscripción-de-equipo) | Pendiente |
@@ -41,7 +41,7 @@ git clone https://github.com/mateorindello1/LigaHub-FE.git
 
 | Archivo | Contenido |
 |:--|:--|
-| `README.md` | Una línea de descripción. **Dice "Repositorio de Back-End"**: hay que corregirlo |
+| `README.md` | Una línea de descripción. Decía "Repositorio de Back-End" (se corrigió en la etapa 2) |
 | `proposal.md` | La propuesta del TP, todavía con los problemas detectados (ver etapa 9) |
 
 No tiene código ni `.gitignore`.
@@ -50,28 +50,22 @@ No tiene código ni `.gitignore`.
 
 ## Etapa 1 — Decisiones de stack
 
-**Estado:** En curso (2026-10-09)
+**Estado:** Hecha (2026-10-09)
 
-### Decididas
+| Decisión | Elección | Por qué | En Blazor |
+|:--|:--|:--|:--|
+| Framework | **React 19 + Vite + TypeScript** | Es el stack declarado del proyecto. Vite es el generador y servidor de desarrollo estándar para React | Blazor WebAssembly |
+| Biblioteca de componentes | **Syncfusion para React**, tema **Material 3** | Ya la conocés de Blazor: grilla, diálogos, formularios y datepickers funcionan con los mismos conceptos, y las pantallas CRUD salen rápido. Cumple el requisito de la cátedra de seguir una biblioteca de componentes | Syncfusion para Blazor |
+| Ruteo | **React Router** | React no trae rutas; es el estándar | `@page` y `NavigationManager` |
+| Pedidos a la API | **Servicio propio sobre `fetch` + TanStack Query** | El servicio cumple el requisito de la cátedra ("al menos un servicio"). TanStack Query maneja caché, carga, errores y el refresco después de guardar | Servicio con `HttpClient` + `IsBusy` y recarga manual en el ViewModel |
+| Formularios | **React Hook Form + Zod** | Reglas y tipo del formulario en un solo esquema; los errores de la API (`detalles` por campo) se muestran en el mismo campo con `setError`; si se cambia de biblioteca de componentes, la validación queda | `EditForm` + DataAnnotations |
+| Gestor de paquetes y Node | **pnpm y Node 24** | Mismo entorno que el backend | — |
 
-| Decisión | Elección | Por qué |
-|:--|:--|:--|
-| Framework | **React + Vite + TypeScript** | Es el stack declarado del proyecto. Vite es el generador y servidor de desarrollo estándar para React |
-| Biblioteca de componentes | **Syncfusion para React** | Ya la conocés de Blazor: grilla, diálogos, formularios y datepickers funcionan con los mismos conceptos, y las pantallas CRUD salen rápido. Cumple el requisito de la cátedra de seguir una biblioteca de componentes |
-| Gestor de paquetes y Node | **pnpm y Node 24** | Mismo entorno que el backend |
-
-### Propuestas, a confirmar al generar el proyecto
-
-| Decisión | Propuesta | Por qué |
-|:--|:--|:--|
-| Tema de Syncfusion | Material o Tailwind | Define el estilo visual de todos los componentes |
-| Ruteo | React Router | Es el estándar para navegar entre pantallas |
-| Pedidos a la API | Servicio propio sobre `fetch` + TanStack Query | El servicio cumple el requisito de la cátedra. TanStack Query maneja la carga, los errores y el refresco después de guardar: lo que en tus ViewModels es "recargar la grilla tras éxito" |
-| Formularios | React Hook Form + Zod | Validación declarativa, como DataAnnotations en el modelo |
+Se compararon dos opciones para los formularios: `FormValidator` de Syncfusion y React Hook Form + Zod. Se eligió la segunda porque no depende de la licencia de Syncfusion, integra los errores de la API y deriva el tipo del formulario de las reglas.
 
 ### Cuidados con Syncfusion
 
-- **Licencia:** es comercial. Se usa la **Community License** gratuita (verificar las condiciones vigentes en [su sitio](https://www.syncfusion.com/products/communitylicense)). Hay que registrarse, obtener una clave y cargarla con `registerLicense()` al iniciar la aplicación; si no, aparece un aviso en pantalla. La clave va en una variable de entorno, no escrita en el código.
+- **Licencia:** es comercial. Por ahora se usa una **licencia de prueba de 7 días** mientras se espera la **Community License** gratuita (condiciones en [su sitio](https://www.syncfusion.com/products/communitylicense)). La clave se carga con `registerLicense()` al iniciar la aplicación, desde la variable `VITE_SYNCFUSION_LICENSE`. **Si la gratuita no llega, el plan B es MUI**: por eso la validación (Zod) y los datos (TanStack Query) no dependen de Syncfusion.
 - **No usar el `DataManager` de la grilla:** los datos se piden con TanStack Query y se le pasa a la grilla un arreglo común. Así hay un solo mecanismo de datos en la aplicación.
 - **Componentes propios que envuelvan a los de Syncfusion** (por ejemplo, `<TablaTorneos>` que recibe los datos por prop y avisa la selección con una función). Es lo mismo que hacés en el trabajo con tus componentes sobre Syncfusion, y es lo que permite mostrar en la defensa input property, output property y reactividad en código propio.
 - **Importar solo los módulos que se usan**, porque los paquetes son pesados.
@@ -82,11 +76,85 @@ No tiene código ni `.gitignore`.
 
 ## Etapa 2 — Andamiaje del proyecto
 
-**Estado:** Pendiente
+**Estado:** Hecha (2026-10-09)
 
-- Generar el proyecto con Vite (plantilla React + TypeScript) en la carpeta del repo.
-- `.node-version`, `.gitignore`, linter y formato.
-- Verificar que levanta en modo desarrollo y que compila.
+**Objetivo:** generar el proyecto, instalar las dependencias del stack y verificar que compila y levanta.
+
+### Conceptos
+
+- **Vite** cumple dos funciones:
+  - **En desarrollo** (`pnpm dev`) sirve la aplicación y la recarga al guardar.
+  - **Al compilar** (`pnpm build`) genera los archivos estáticos (HTML, JS y CSS) en `dist/`.
+
+  El resultado es una SPA: un solo `index.html` y JavaScript que corre en el navegador, como Blazor WebAssembly.
+- **Variables de entorno en Vite:** solo se exponen al código las que empiezan con `VITE_`, y se leen con `import.meta.env.VITE_...`. **Todas terminan en el JavaScript que descarga el navegador**, así que no puede haber secretos ahí. Pasa lo mismo con el `appsettings.json` de `wwwroot` en Blazor WASM. La clave de Syncfusion es pública por diseño: Syncfusion la valida en el navegador.
+
+### Diferencias de configuración con el backend
+
+| Tema | Backend (Nest) | Frontend (Vite) |
+|:--|:--|:--|
+| Imports entre archivos propios | Terminan en `.js` (`./app.module.js`), por `module: nodenext` | **Sin extensión** (`./App`), por `moduleResolution: bundler`: Vite resuelve los archivos |
+| `enum` de TypeScript | Se usan (`EstadoTorneo`) | **No se pueden usar**: `erasableSyntaxOnly` solo permite sintaxis que se borra al compilar, y un `enum` genera código. En su lugar se usan objetos `as const` con un tipo derivado (se ve en la etapa 3) |
+| Decoradores | Sí (Nest los necesita) | No |
+
+### Comandos
+
+```powershell
+# En una carpeta temporal: el generador pide confirmación si la carpeta del repo no está vacía
+pnpm create vite@latest ligahub-fe --template react-ts --no-interactive
+# Se copió todo al repo, menos el README
+
+Set-Content -Path .node-version -Value "24" -NoNewline
+pnpm install
+pnpm add react-router @tanstack/react-query react-hook-form zod @hookform/resolvers
+pnpm add @syncfusion/ej2-base @syncfusion/ej2-react-grids @syncfusion/ej2-react-inputs @syncfusion/ej2-react-buttons @syncfusion/ej2-react-popups @syncfusion/ej2-react-dropdowns @syncfusion/ej2-react-navigations @syncfusion/ej2-react-notifications @syncfusion/ej2-material3-theme
+pnpm add -D prettier
+```
+
+### Dependencias instaladas
+
+| Paquete | Para qué |
+|:--|:--|
+| `react`, `react-dom` | React (los instala la plantilla) |
+| `react-router` | Rutas y navegación |
+| `@tanstack/react-query` | Pedidos a la API con caché y refresco |
+| `react-hook-form`, `zod`, `@hookform/resolvers` | Formularios, reglas de validación y la conexión entre los dos |
+| `@syncfusion/ej2-base` | Núcleo de Syncfusion; de acá sale `registerLicense()` |
+| `@syncfusion/ej2-react-grids` | Grilla (`GridComponent`) |
+| `@syncfusion/ej2-react-inputs` | Cajas de texto, numéricas, etc. |
+| `@syncfusion/ej2-react-buttons` | Botones, checkboxes |
+| `@syncfusion/ej2-react-popups` | Diálogos (`DialogComponent`) |
+| `@syncfusion/ej2-react-dropdowns` | Listas desplegables (por ejemplo, el selector de torneo) |
+| `@syncfusion/ej2-react-navigations` | Menú lateral, barra de navegación, pestañas |
+| `@syncfusion/ej2-react-notifications` | Avisos (`ToastComponent`) |
+| `@syncfusion/ej2-material3-theme` | Tema Material 3: un solo CSS (`styles/material3.css`) con los estilos de todos los componentes |
+| `prettier` (desarrollo) | Formato del código, con la misma configuración que el backend |
+
+### Archivos creados
+
+| Archivo | Para qué sirve | En Blazor |
+|:--|:--|:--|
+| `package.json` / `pnpm-lock.yaml` | Dependencias y scripts | `.csproj` / `packages.lock.json` |
+| `index.html` | La única página HTML: carga `src/main.tsx` | `wwwroot/index.html` |
+| `src/main.tsx` | Punto de entrada: monta el componente raíz en el HTML | `Program.cs` |
+| `src/App.tsx`, `App.css`, `index.css`, `src/assets/` | Pantalla de ejemplo de la plantilla. Se reemplaza en la etapa 3 | `App.razor` |
+| `public/` | Archivos que se sirven tal cual (íconos) | `wwwroot/` |
+| `vite.config.ts` | Configuración de Vite. Se fijó el **puerto 5173** (`strictPort`), porque el backend solo acepta pedidos desde ese origen (CORS) | `launchSettings.json` |
+| `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json` | TypeScript para el código de la app y para la configuración de Vite. Se agregó `"strict": true` explícito | Propiedades del `.csproj` |
+| `.oxlintrc.json` | Linter, con las reglas de React (por ejemplo, las reglas de los hooks) | Analizadores de Roslyn |
+| `.prettierrc` | Formato: comillas simples y coma final, igual que el backend | `.editorconfig` |
+| `.gitignore` | El de Vite, más `.env`, `.env.*` (salvo `.env.example`) y `.obsidian/` | — |
+| `.env.example` / `.env` | `VITE_API_URL` y `VITE_SYNCFUSION_LICENSE`. `.env` no se versiona | `wwwroot/appsettings.json` |
+| `.node-version` | Node 24, igual que el backend | `global.json` |
+| `README.md` | Se reemplazó: decía "Back-End" | — |
+
+### Cómo probarlo
+
+```powershell
+pnpm dev
+```
+
+Y abrir `http://localhost:5173`: se ve la pantalla de ejemplo de Vite. `pnpm build` y `pnpm lint` terminan sin errores.
 
 ## Etapa 3 — Base de la aplicación: layout, rutas, servicio de API y tipos
 
@@ -145,7 +213,6 @@ Checklist que se verifica en la defensa, componente por componente:
 
 **Estado:** Pendiente
 
-- Corregir el `README.md` (dice "Back-End").
 - Actualizar `proposal.md`:
   - Integrantes: quedan dos (figuran cuatro).
   - Alcance recortado a lo exigido para dos integrantes.

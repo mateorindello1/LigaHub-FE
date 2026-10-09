@@ -1,0 +1,41 @@
+{
+  "name": "ligahub-fe",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
+    "@syncfusion/ej2-base": "^35.1.37",
+    "@syncfusion/ej2-material3-theme": "^35.1.39",
+    "@syncfusion/ej2-react-buttons": "^35.1.37",
+    "@syncfusion/ej2-react-dropdowns": "^35.1.39",
+    "@syncfusion/ej2-react-grids": "^35.1.39",
+    "@syncfusion/ej2-react-inputs": "^35.1.37",
+    "@syncfusion/ej2-react-navigations": "^35.1.39",
+    "@syncfusion/ej2-react-notifications": "^35.1.37",
+    "@syncfusion/ej2-react-popups": "^35.1.39",
+    "@tanstack/react-query": "^5.104.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-hook-form": "^7.89.0",
+    "react-router": "^8.4.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}
