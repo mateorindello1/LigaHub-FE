@@ -1,8 +1,10 @@
 import { createBrowserRouter } from 'react-router';
 import { Layout } from './componentes/layout/Layout';
 import { EnConstruccionPagina } from './paginas/EnConstruccionPagina';
+import { EquiposPagina } from './paginas/EquiposPagina';
 import { InicioPagina } from './paginas/InicioPagina';
 import { NoEncontradaPagina } from './paginas/NoEncontradaPagina';
+import { TorneosPagina } from './paginas/TorneosPagina';
 
 /**
  * Rutas de la aplicación. Todas se dibujan dentro del Layout (en su <Outlet />).
@@ -14,14 +16,8 @@ export const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { index: true, element: <InicioPagina /> },
-      {
-        path: 'torneos',
-        element: <EnConstruccionPagina titulo="Torneos" etapa={4} />,
-      },
-      {
-        path: 'equipos',
-        element: <EnConstruccionPagina titulo="Equipos" etapa={4} />,
-      },
+      { path: 'torneos', element: <TorneosPagina /> },
+      { path: 'equipos', element: <EquiposPagina /> },
       {
         path: 'posiciones',
         element: <EnConstruccionPagina titulo="Posiciones" etapa={6} />,

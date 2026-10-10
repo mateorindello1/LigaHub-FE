@@ -97,6 +97,115 @@ h1 {
 }
 /* #endregion */
 
+/* #region Formularios y diálogos */
+.campo {
+  margin-bottom: 16px;
+}
+
+/*
+ * El NumericTextBox le pone a su etiqueta flotante un ancho fijo calculado que puede superar el del
+ * diálogo; al recibir el foco, el contenido se desplazaba hacia el costado. Se limita al del campo.
+ */
+.campo .e-float-input .e-float-text {
+  max-width: 100%;
+}
+
+.campo__error,
+.campo__ayuda {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+}
+
+.campo__error {
+  color: rgb(var(--color-sf-error));
+}
+
+.campo__ayuda {
+  color: rgb(var(--color-sf-on-surface-variant));
+}
+
+/*
+ * Los diálogos se dibujan dentro de #root (ver Dialogo.tsx). Ahí Syncfusion posiciona su contenedor
+ * como "absolute" respecto de #root; con "fixed" queda centrado en la pantalla aunque la página
+ * sea larga y esté desplazada.
+ */
+#root > .e-dlg-container {
+  position: fixed;
+}
+
+/* En celular el diálogo ocupa el ancho disponible, con 16 px de margen a cada lado. */
+.dialogo.e-dialog {
+  max-width: calc(100vw - 32px);
+}
+
+.dialogo__mensaje {
+  margin: 0 0 8px;
+}
+
+.dialogo__pie {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.dialogo .mensaje-error {
+  margin-top: 8px;
+}
+/* #endregion */
+
+/* #region Grillas */
+.acciones-fila {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.celda-torneo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  white-space: normal;
+}
+
+/* Contenido que solo se muestra en SM (en MD y LG lo muestra otra columna). */
+@media (min-width: 768px) {
+  .solo-sm {
+    display: none;
+  }
+}
+
+.celda-equipo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+/* #endregion */
+
+/* #region Escudos */
+.escudo {
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.escudo--iniciales {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--color-sf-primary-container));
+  color: rgb(var(--color-sf-on-primary-container));
+  font-weight: 500;
+}
+
+.vista-previa-escudo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+/* #endregion */
+
 /* #region Grilla de tarjetas: 1 columna en SM, 2 en MD, 3 en LG */
 .grilla-tarjetas {
   display: grid;

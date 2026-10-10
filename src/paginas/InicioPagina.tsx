@@ -1,24 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
-import { clavesConsulta } from '../api/claves-consulta';
 import { Cargando } from '../componentes/comunes/Cargando';
 import { EncabezadoPagina } from '../componentes/comunes/EncabezadoPagina';
 import { MensajeError } from '../componentes/comunes/MensajeError';
 import { TarjetaTorneo } from '../componentes/torneos/TarjetaTorneo';
-import { torneosServicio } from '../servicios/torneos.servicio';
+import { useTorneos } from '../hooks/torneos.hooks';
 
 /** Pantalla de inicio: los torneos con accesos a su tabla de posiciones y su fixture. */
 export function InicioPagina() {
-  // useQuery pide los datos con el servicio, los guarda en caché y expone el estado del pedido.
-  // Equivale al OnInitializedAsync + IsBusy + manejo de error de un ViewModel.
-  const {
-    data: torneos,
-    isPending,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: clavesConsulta.torneos,
-    queryFn: ({ signal }) => torneosServicio.obtenerTodos(signal),
-  });
+  // useTorneos usa useQuery: pide los datos con el servicio, los guarda en caché y expone el
+  // estado del pedido. Equivale al OnInitializedAsync + IsBusy + manejo de error de un ViewModel.
+  const { data: torneos, isPending, error, refetch } = useTorneos();
 
   return (
     <>

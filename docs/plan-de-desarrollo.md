@@ -16,7 +16,7 @@ El plan del backend está en [LigaHub-BE/docs/plan-de-desarrollo.md](https://git
 | 1 | [Decisiones de stack](#etapa-1--decisiones-de-stack) | Hecha |
 | 2 | [Andamiaje del proyecto](#etapa-2--andamiaje-del-proyecto) | Hecha |
 | 3 | [Base de la aplicación: layout, rutas, servicio de API y tipos](#etapa-3--base-de-la-aplicación-layout-rutas-servicio-de-api-y-tipos) | Hecha |
-| 4 | [Pantallas CRUD: Torneo y Equipo](#etapa-4--pantallas-crud-torneo-y-equipo) | Pendiente |
+| 4 | [Pantallas CRUD: Torneo y Equipo](#etapa-4--pantallas-crud-torneo-y-equipo) | Hecha |
 | 5 | [Pantalla CRUD dependiente: Inscripción de equipo](#etapa-5--pantalla-crud-dependiente-inscripción-de-equipo) | Pendiente |
 | 6 | [Listado con filtro y detalle](#etapa-6--listado-con-filtro-y-detalle) | Pendiente |
 | 7 | [Caso de uso: generar el fixture](#etapa-7--caso-de-uso-generar-el-fixture) | Pendiente |
@@ -282,10 +282,131 @@ Se verificó en el navegador:
 
 ## Etapa 4 — Pantallas CRUD: Torneo y Equipo
 
-**Estado:** Pendiente
+**Estado:** Hecha (2026-10-09)
 
-- Patrón grilla + modal, como en tu trabajo: `GridComponent` y `DialogComponent` de Syncfusion para el listado, alta, edición y baja, refrescando la grilla después de cada operación exitosa.
-- Componentes propios reutilizables sobre los de Syncfusion (formulario, tabla, modal de confirmación).
+**Objetivo:** los dos CRUD simples con el patrón de tu trabajo: grilla + ventana modal, recargando la grilla después de cada operación exitosa. Los componentes comunes (diálogo, confirmación, campos, botones de fila) quedan listos para reutilizar en las etapas siguientes.
+
+### Archivos nuevos
+
+```
+src/
+├── componentes/
+│   ├── comunes/
+│   │   ├── AccionesFila.tsx            Botones modificar y borrar de cada fila
+│   │   ├── Dialogo.tsx                 DialogComponent de Syncfusion con la configuración común
+│   │   └── DialogoConfirmacion.tsx     "¿Borrar…? No se puede deshacer." con Cancelar / Borrar
+│   ├── equipos/
+│   │   ├── EscudoEquipo.tsx            Imagen del escudo, o círculo con iniciales si no tiene
+│   │   └── FormularioEquipo.tsx        Alta y modificación, con vista previa del escudo
+│   ├── formularios/
+│   │   ├── BotonesFormulario.tsx       Pie con Cancelar y Guardar ("Guardando…" mientras espera)
+│   │   ├── CampoNumero.tsx             NumericTextBox de Syncfusion conectado a React Hook Form
+│   │   ├── CampoTexto.tsx              TextBox de Syncfusion conectado a React Hook Form
+│   │   ├── MensajeCampo.tsx            Error o ayuda debajo de un campo
+│   │   └── errores-servidor.ts         Muestra en el formulario los errores que devuelve la API
+│   └── torneos/
+│       ├── BadgeEstadoTorneo.tsx       Estado del torneo como badge de color
+│       └── FormularioTorneo.tsx        Alta y modificación
+├── config/textos-syncfusion.ts         Textos de la grilla, el paginador y el diálogo en español
+├── hooks/
+│   ├── equipos.hooks.ts                useEquipos, useCrearEquipo, useModificarEquipo, useBorrarEquipo
+│   └── torneos.hooks.ts                useTorneos, useCrearTorneo, useModificarTorneo, useBorrarTorneo
+├── paginas/
+│   ├── EquiposPagina.tsx               ABM de equipos
+│   └── TorneosPagina.tsx               ABM de torneos
+└── validaciones/
+    ├── equipo.validacion.ts            Esquema Zod del formulario de equipo
+    └── torneo.validacion.ts            Esquema Zod del formulario de torneo
+```
+
+### Cómo se reparte el trabajo (comparado con tu MVVM)
+
+| Pieza | Qué hace | En tu MVVM de Blazor |
+|:--|:--|:--|
+| `TorneosPagina` | Grilla, botón "Nuevo", qué diálogo está abierto y los avisos | La vista `.razor` con su code-behind |
+| `useTorneos` | Trae la lista y la mantiene en caché | El ViewModel de listado con su colección |
+| `useCrearTorneo`, `useModificarTorneo`, `useBorrarTorneo` | Llaman al servicio y, si sale bien, invalidan la caché para que la grilla se recargue | `CreateCommand`, `UpdateCommand`, `DeleteCommand` del ViewModel de CRUD |
+| `FormularioTorneo` | Valores, validación y envío del formulario | El componente de formulario con `EditForm` |
+| `esquemaTorneo` (Zod) | Reglas de validación | El validador de FluentValidation o los DataAnnotations del Model |
+| `torneosServicio` (etapa 3) | Los pedidos HTTP | El servicio con `HttpClient` |
+
+### Flujo de una operación
+
+Al guardar un torneo:
+
+1. `handleSubmit` de React Hook Form valida con el esquema de Zod. Si algo falla, muestra el error debajo del campo y no envía nada.
+2. Si los datos son válidos, `FormularioTorneo` llama a `onGuardar` (la output property) y espera. Mientras tanto, `isSubmitting` deshabilita los botones y Guardar dice "Guardando…".
+3. La página llama a `mutateAsync` del hook, que usa el servicio.
+4. **Si sale bien:** el hook invalida la clave `['torneos']`, TanStack Query vuelve a pedir la lista y la grilla se actualiza sola. La página muestra el aviso de éxito y cierra el diálogo.
+5. **Si falla:** la promesa se rechaza, el formulario captura el error y lo muestra (ver la tabla siguiente). El diálogo queda abierto para corregir.
+
+El borrado es parecido: la confirmación llama a `mutate` y el resultado (éxito o error) se avisa con una notificación.
+
+### Errores en los formularios
+
+| Error | Dónde se ve | Ejemplo |
+|:--|:--|:--|
+| Validación de Zod (antes de enviar) | Debajo del campo, en rojo | "El año no puede ser anterior a 2000." |
+| 400 de validación del backend, con `detalles` | Debajo del campo correspondiente | El backend rechaza la URL del escudo |
+| Otro error del backend (409, 404, conexión) | Recuadro de error dentro del diálogo | "Ya existe un equipo llamado "Los Halcones"." |
+| Error al borrar | Notificación roja | "No se puede borrar un torneo con equipos inscriptos o fixture generado." |
+
+Los esquemas de Zod repiten las reglas y los mensajes de los DTO del backend. Así el usuario ve el error sin esperar la respuesta, y el backend sigue validando igual. La unicidad del nombre del equipo solo la puede validar el backend.
+
+### Conceptos
+
+- **React Hook Form:** `useForm` administra los valores, los errores y el envío; `zodResolver` le pasa el esquema de Zod para validar. Es el `EditForm` con `FluentValidationValidator` de Blazor. Los campos no vuelven a dibujar todo el formulario en cada tecla.
+- **`useController`:** conecta un componente que no es un `<input>` común (el `TextBoxComponent` o el `NumericTextBoxComponent` de Syncfusion) con el formulario. Equivale al `@bind-Value` de un componente de Syncfusion dentro de un `EditForm`.
+- **Componentes genéricos:** `CampoTexto<T>` recibe el control del formulario y el nombre del campo. TypeScript solo acepta nombres que existen en el formulario, como una expresión `x => x.Nombre`.
+- **`z.infer`:** el tipo de los datos del formulario se deduce del esquema, así no se escribe dos veces.
+- **`useMutation`:** representa una operación que modifica datos. `mutateAsync` devuelve una promesa (se usa en el formulario, que necesita saber si falló); `mutate` avisa por callbacks (`onSuccess`, `onError`). `isPending` indica que está en curso.
+- **Invalidación de la caché:** `invalidateQueries({ queryKey: ['torneos'] })` marca los datos como viejos y los vuelve a pedir. Como las claves son jerárquicas, también se actualizan las posiciones y el fixture que cuelgan de `['torneos', id, …]`. Al guardar un equipo se invalidan `['equipos']` y `['torneos']`, porque su nombre aparece en las posiciones.
+- **Plantillas de columna:** la grilla recibe una función que dibuja la celda (`template={plantillaAcciones}`), como el `<Template>` de una `GridColumn`. Se envuelve en `useCallback` para que sea la misma función en cada dibujo; si cambiara, la grilla redibujaría las columnas.
+- **Diálogo que se monta y desmonta:** el diálogo se dibuja solo mientras está abierto (`{edicion && <Dialogo …>}`). Cada vez que se abre, el formulario arranca de cero con los datos del registro, sin tener que limpiarlo a mano.
+- **Estado de la pantalla:** `edicion` dice qué formulario está abierto (`null`, alta o modificación de un registro) y `aBorrar` qué registro se está por borrar. Las dos son `useState`.
+
+### Detalles de Syncfusion que aparecieron
+
+- **El diálogo tiene que dibujarse dentro de `#root`.** Syncfusion mueve el diálogo al `<body>`, fuera del contenedor de React. React escucha los eventos solo dentro de su raíz, así que el `onSubmit` del formulario no llegaba y el navegador hacía un envío común (recargaba la página con `?anio=2026` en la URL). Se resolvió con `target="#root"` en `Dialogo.tsx`, y en `index.css` el contenedor queda `position: fixed` para centrarse en la pantalla.
+- **El NumericTextBox le pone a su etiqueta un ancho fijo calculado,** que podía superar el del diálogo. Al llevar el foco al campo con error, el contenido se desplazaba hacia el costado. Se limitó con `max-width: 100%` en `index.css`.
+- **El NumericTextBox avisa el cambio al salir del campo o con Enter,** no en cada tecla (no tiene evento `input`). Se verificó que tocar Guardar sin salir del campo toma igual el valor nuevo.
+- **Los límites del año (2000 a 2100) los valida Zod y no el control.** El NumericTextBox puede corregir el valor solo (`min` y `max`), pero así el usuario no sabe por qué cambió.
+- **Textos en español:** `config/textos-syncfusion.ts` carga con `L10n.load` las traducciones del paginador, la grilla vacía y el botón de cerrar del diálogo, y los componentes las usan con `locale="es"`. No se cargó la cultura completa (números y fechas), que requiere los datos CLDR.
+- **Columnas según el ancho:** `hideAtMedia` muestra una columna solo cuando se cumple la media query. En celular, la grilla de torneos oculta Año y Estado, y el estado se muestra debajo del nombre.
+
+### Otros cambios
+
+| Archivo | Cambio |
+|:--|:--|
+| `src/rutas.tsx` | `/torneos` y `/equipos` apuntan a las pantallas nuevas |
+| `src/main.tsx` | Importa los textos en español de Syncfusion |
+| `src/paginas/InicioPagina.tsx` | Usa `useTorneos` en lugar de `useQuery` directo: comparte la caché con la grilla |
+| `src/componentes/torneos/TarjetaTorneo.tsx` | Usa `BadgeEstadoTorneo` |
+| `src/api/error-api.ts` | `mensajeDeError` también acepta un texto |
+| `src/index.css` | Estilos de campos, diálogos, celdas y escudos |
+
+### Cómo probarlo
+
+Con el backend levantado y el seed cargado, `pnpm dev` y entrar a **Torneos** o **Equipos** desde el menú.
+
+Se verificó en el navegador:
+- **Alta de torneo:**
+  - Con el formulario vacío y el año en 1999 aparecen los dos errores de Zod.
+  - Con datos válidos, enviado con Enter desde el año, se crea, la grilla se actualiza y aparece el aviso.
+- **Modificación:** el formulario se abre con los datos del registro y guarda el cambio.
+- **Baja rechazada:** borrar Apertura muestra el error del backend en una notificación ("No se puede borrar un torneo con equipos inscriptos o fixture generado.").
+- **Baja correcta** de un torneo y un equipo creados para la prueba.
+- **Equipo:**
+  - Una URL inválida se marca en el campo.
+  - El nombre repetido muestra el 409 dentro del diálogo.
+  - La vista previa del escudo muestra la imagen o las iniciales.
+- **Error del backend en su campo:** el backend rechazó `http://localhost:5173/…` como escudo. Su `@IsUrl` exige un dominio con extensión, así que el esquema de Zod se ajustó para aplicar la misma regla.
+- **Escape** cierra el diálogo.
+- **Breakpoints:**
+  - **LG (1280 px) y MD (800 px):** grilla completa.
+  - **SM (375 px):** nombre con el estado debajo, y diálogos con margen a los costados.
+
+> **Tamaño del JavaScript:** el paquete pesa 1,96 MB (496 KB comprimido), sobre todo por la grilla de Syncfusion, y Vite avisa que supera los 500 KB. No impide nada. Si hace falta, en la etapa 8 se puede cargar cada pantalla por separado (rutas con `lazy`).
 
 ## Etapa 5 — Pantalla CRUD dependiente: Inscripción de equipo
 

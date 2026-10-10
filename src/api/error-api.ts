@@ -40,8 +40,9 @@ export class ErrorApi extends Error {
   }
 }
 
-/** Devuelve un mensaje para mostrar al usuario a partir de cualquier error. */
+/** Devuelve un mensaje para mostrar al usuario a partir de cualquier error (o de un texto). */
 export function mensajeDeError(error: unknown): string {
   if (error instanceof ErrorApi) return error.message;
+  if (typeof error === 'string' && error !== '') return error;
   return 'Ocurrió un error inesperado.';
 }

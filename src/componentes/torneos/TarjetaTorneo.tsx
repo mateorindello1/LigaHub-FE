@@ -1,13 +1,6 @@
 import { Link } from 'react-router';
-import { EstadoTorneo, NOMBRES_ESTADO_TORNEO } from '../../modelos/estados';
 import type { Torneo } from '../../modelos/torneo';
-
-/** Clase de color del badge de Syncfusion según el estado del torneo. */
-const COLOR_ESTADO: Record<EstadoTorneo, string> = {
-  [EstadoTorneo.Inscripcion]: 'e-badge-info',
-  [EstadoTorneo.EnCurso]: 'e-badge-success',
-  [EstadoTorneo.Finalizado]: 'e-badge-secondary',
-};
+import { BadgeEstadoTorneo } from './BadgeEstadoTorneo';
 
 interface Props {
   torneo: Torneo;
@@ -22,9 +15,7 @@ export function TarjetaTorneo({ torneo }: Props) {
           <div className="e-card-header-title">{torneo.nombre}</div>
           <div className="e-card-sub-title">{torneo.anio}</div>
         </div>
-        <span className={`e-badge ${COLOR_ESTADO[torneo.estadoTorneo]}`}>
-          {NOMBRES_ESTADO_TORNEO[torneo.estadoTorneo]}
-        </span>
+        <BadgeEstadoTorneo estado={torneo.estadoTorneo} />
       </div>
       <div className="e-card-actions">
         <Link
