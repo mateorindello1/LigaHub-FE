@@ -13,7 +13,7 @@ export function InicioPagina() {
   return (
     <>
       <EncabezadoPagina
-        titulo="Torneos"
+        titulo="Inicio"
         descripcion="Elegí un torneo para ver sus inscripciones, su tabla de posiciones o su fixture."
       />
 

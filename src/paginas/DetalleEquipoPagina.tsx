@@ -125,6 +125,7 @@ function DetalleEquipo({ torneoId, equipoId }: Props) {
     <>
       {volver}
 
+      <title>{`${detalle.equipo.nombre} · ${detalle.torneo.nombre} · LigaHub`}</title>
       <header className="encabezado-equipo">
         <EscudoEquipo
           nombre={detalle.equipo.nombre}

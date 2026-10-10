@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, Outlet } from 'react-router';
+import { Link, Outlet, useNavigation } from 'react-router';
 import { AppBarComponent } from '@syncfusion/ej2-react-navigations';
 import { ButtonComponent } from '@syncfusion/ej2-react-buttons';
 import { MenuNavegacion, type ItemMenu } from './MenuNavegacion';
@@ -24,6 +24,8 @@ const OPCIONES_MENU: ItemMenu[] = [
 export function Layout() {
   // Estado del menú en pantallas chicas. Al cambiarlo, React vuelve a dibujar el componente.
   const [menuAbierto, setMenuAbierto] = useState(false);
+  // "loading" mientras se descarga el código de la pantalla a la que se navega (carga diferida).
+  const cargandoPantalla = useNavigation().state === 'loading';
 
   return (
     <div className={menuAbierto ? 'layout layout--menu-abierto' : 'layout'}>
@@ -57,6 +59,13 @@ export function Layout() {
       )}
 
       <main className="layout__contenido">
+        {cargandoPantalla && (
+          <div
+            className="barra-progreso"
+            role="progressbar"
+            aria-label="Cargando la pantalla"
+          />
+        )}
         <Outlet />
       </main>
     </div>

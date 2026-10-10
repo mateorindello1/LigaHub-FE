@@ -20,7 +20,7 @@ El plan del backend está en [LigaHub-BE/docs/plan-de-desarrollo.md](https://git
 | 5 | [Pantalla CRUD dependiente: Inscripción de equipo](#etapa-5--pantalla-crud-dependiente-inscripción-de-equipo) | Hecha |
 | 6 | [Listado con filtro y detalle](#etapa-6--listado-con-filtro-y-detalle) | Hecha |
 | 7 | [Caso de uso: generar el fixture](#etapa-7--caso-de-uso-generar-el-fixture) | Hecha |
-| 8 | [Revisión de requisitos de la cátedra](#etapa-8--revisión-de-requisitos-de-la-cátedra) | Pendiente |
+| 8 | [Revisión de requisitos de la cátedra](#etapa-8--revisión-de-requisitos-de-la-cátedra) | Hecha |
 | 9 | [Documentación y proposal](#etapa-9--documentación-y-proposal) | Pendiente |
 | 10 | [Aprobación directa: login, rutas protegidas, tests y ambientes](#etapa-10--aprobación-directa-login-rutas-protegidas-tests-y-ambientes) | Pendiente |
 
@@ -664,19 +664,77 @@ Se verificó en el navegador:
 
 ## Etapa 8 — Revisión de requisitos de la cátedra
 
-**Estado:** Pendiente
+**Estado:** Hecha (2026-10-10)
 
-Checklist que se verifica en la defensa, componente por componente:
+**Objetivo:** comprobar cada requisito de regularidad del frontend contra el código, dejar la evidencia lista para la defensa y corregir lo que faltara.
 
-- [ ] Manejo de eventos del usuario (click, input)
-- [ ] Manejo amigable de errores
-- [ ] Reactividad ante un cambio de estado
-- [ ] Input property (en React, una prop; en Blazor, `[Parameter]`)
-- [ ] Output property (en React, una función recibida por prop; en Blazor, `EventCallback`)
-- [ ] Al menos un servicio
-- [ ] Modelos representados con clases, interfaces o tipos
-- [ ] Visualización correcta en SM, MD y LG
-- [ ] Que no haga falta un manual de usuario
+### Resultado
+
+La verificación completa, requisito por requisito y con enlaces al archivo y la línea, está en **[requisitos-catedra.md](requisitos-catedra.md)**.
+
+- [x] Manejo de eventos del usuario (click, input)
+- [x] Manejo amigable de errores
+- [x] Reactividad ante un cambio de estado
+- [x] Input property (en React, una prop; en Blazor, `[Parameter]`)
+- [x] Output property (en React, una función recibida por prop; en Blazor, `EventCallback`)
+- [x] Al menos un servicio (hay cinco)
+- [x] Modelos representados con clases, interfaces o tipos
+- [x] Visualización correcta en SM, MD y LG
+- [x] Que no haga falta un manual de usuario
+- [x] Algún patrón de diseño orientado a objetos (Adapter, Facade, Factory Method, Observer, inyección de dependencias)
+- [x] Dependencias registradas
+
+### Lo que se corrigió en la revisión
+
+| Hueco | Corrección |
+|:--|:--|
+| Un error inesperado al dibujar una pantalla mostraba la pantalla de error de React Router (en inglés, con detalles técnicos) | Pantalla propia "Algo salió mal", dentro del Layout, con "Recargar la página" y "Volver al inicio" ([ErrorRutaPagina.tsx](../src/paginas/ErrorRutaPagina.tsx)) |
+| La pestaña del navegador decía siempre "LigaHub" | Cada pantalla pone su título ("Posiciones · LigaHub", "Atlético Norte · Apertura · LigaHub") |
+| El inicio y la pantalla de ABM se llamaban los dos "Torneos" | El inicio ahora se titula "Inicio", como en el menú |
+| El JavaScript inicial pesaba 2,26 MB (pendiente desde la etapa 4) | Carga diferida de las pantallas: el inicio descarga unos 645 KB y la grilla se baja al entrar a una pantalla que la usa |
+| No se había podido ver el error con el backend caído (pendiente desde la etapa 3) | Verificado: ver "Cómo se probó" |
+
+### Archivos
+
+| Archivo | Cambio |
+|:--|:--|
+| `docs/requisitos-catedra.md` | Nuevo: verificación de requisitos con evidencia |
+| `src/paginas/ErrorRutaPagina.tsx` | Nuevo: pantalla de error inesperado |
+| `src/rutas.tsx` | Rutas con carga diferida (`lazy`), `errorElement` y pantalla de carga inicial |
+| `src/componentes/layout/Layout.tsx` | Barra de progreso mientras se descarga una pantalla |
+| `src/componentes/comunes/EncabezadoPagina.tsx` | `<title>` de la pestaña |
+| `src/paginas/DetalleEquipoPagina.tsx` | `<title>` con el equipo y el torneo |
+| `src/paginas/InicioPagina.tsx` | Título "Inicio" |
+| `src/index.css` | Estilos de la barra de progreso y de las acciones de error |
+| `vite.config.ts` | Límite de aviso de tamaño en 800 KB, con el motivo |
+
+### Conceptos
+
+- **Carga diferida de rutas (`lazy`):** en `rutas.tsx`, cada pantalla pesada se declara con `lazy: async () => ({ Component: (await import('./paginas/X')).X })`.
+  - `import()` dinámico hace que Vite separe ese código en otro archivo, que se descarga la primera vez que se entra a la ruta. Es como el lazy loading de ensamblados en Blazor WebAssembly.
+  - El inicio y la página "no encontrada" se cargan siempre, porque son livianos.
+  - La grilla de Syncfusion es un único módulo de unos 730 KB que no se puede partir; ahora se descarga recién al entrar a una pantalla con grilla.
+  - El aviso de Vite (más de 500 KB) se subió a 800 KB en `vite.config.ts`, con el motivo comentado.
+- **`useNavigation`:** mientras se descarga el código de otra pantalla, React Router informa `state === 'loading'` y el Layout muestra una barra fina de progreso.
+- **`hydrateFallbackElement`:** lo que se ve al abrir la aplicación directamente en una ruta diferida (por ejemplo, un enlace a `/fixture`) mientras se descarga su código.
+- **`errorElement` en una ruta sin dirección:** las pantallas están agrupadas en una ruta hija sin `path`, con `errorElement`. Si una pantalla falla, el error se muestra en el lugar del `<Outlet />` y la barra y el menú siguen funcionando. Es el `<ErrorBoundary>` de Blazor. También cubre el caso de una versión nueva publicada: si el archivo de una pantalla ya no existe, pide recargar.
+- **`<title>` en componentes (React 19):** un `<title>` dentro de cualquier componente se lleva automáticamente al `<head>`. No hace falta tocar `document.title` a mano.
+
+### Cómo se probó
+
+- **Carga diferida:**
+  - Al entrar a Posiciones desde el menú, el navegador descarga `PosicionesPagina.js` en ese momento.
+  - Abrir `/fixture?torneo=1` directamente funciona, sin advertencias en la consola.
+  - El build genera un archivo por pantalla.
+- **Títulos:** "Inicio · LigaHub", "Posiciones · LigaHub", "Fixture · LigaHub".
+- **Error inesperado:** se agregó por un momento un `throw` en Posiciones.
+  - La pantalla "Algo salió mal" apareció dentro del Layout, con el menú funcionando.
+  - El archivo se restauró con `git checkout`.
+- **Backend caído:**
+  - Con la API apagada, el inicio muestra "No se pudo conectar con el servidor…" y el botón Reintentar, después de dos reintentos automáticos (unos 3 segundos).
+  - Al levantar la API, Reintentar carga los torneos.
+
+> **Panel del navegador oculto:** TanStack Query pausa los reintentos si la página no está visible (`visibilityState: hidden`) y los retoma al volver. Para probarlo con el panel de Claude oculto, se simuló la página visible desde la consola, disparando `visibilitychange` con `bubbles: true` (TanStack lo escucha en `window`). En un navegador normal, con la pestaña a la vista, no hace falta nada.
 
 ## Etapa 9 — Documentación y proposal
 

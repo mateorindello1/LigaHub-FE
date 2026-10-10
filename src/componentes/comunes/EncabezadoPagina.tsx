@@ -11,6 +11,8 @@ interface Props {
 export function EncabezadoPagina({ titulo, descripcion, acciones }: Props) {
   return (
     <header className="encabezado-pagina">
+      {/* React 19 lleva el <title> al <head>: la pestaña del navegador muestra la pantalla actual. */}
+      <title>{`${titulo} · LigaHub`}</title>
       <div>
         <h1>{titulo}</h1>
         {descripcion && <p>{descripcion}</p>}

@@ -57,6 +57,42 @@ h1 {
 /* #endregion */
 
 /* #region Cargando y error */
+/* Barra fina arriba del contenido mientras se carga el código de otra pantalla. */
+.barra-progreso {
+  position: fixed;
+  top: var(--alto-barra);
+  right: 0;
+  left: 0;
+  z-index: 10;
+  height: 3px;
+  overflow: hidden;
+  background: rgb(var(--color-sf-primary-container));
+}
+
+.barra-progreso::after {
+  content: '';
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: rgb(var(--color-sf-primary));
+  animation: avanzar 1s ease-in-out infinite;
+}
+
+@keyframes avanzar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.acciones-error {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .cargando {
   display: flex;
   align-items: center;
