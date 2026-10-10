@@ -1,8 +1,8 @@
 import { createBrowserRouter } from 'react-router';
 import { Layout } from './componentes/layout/Layout';
-import { EnConstruccionPagina } from './paginas/EnConstruccionPagina';
 import { DetalleEquipoPagina } from './paginas/DetalleEquipoPagina';
 import { EquiposPagina } from './paginas/EquiposPagina';
+import { FixturePagina } from './paginas/FixturePagina';
 import { InicioPagina } from './paginas/InicioPagina';
 import { InscripcionesPagina } from './paginas/InscripcionesPagina';
 import { NoEncontradaPagina } from './paginas/NoEncontradaPagina';
@@ -27,10 +27,7 @@ export const router = createBrowserRouter([
         path: 'posiciones/:torneoId/equipos/:equipoId',
         element: <DetalleEquipoPagina />,
       },
-      {
-        path: 'fixture',
-        element: <EnConstruccionPagina titulo="Fixture" etapa={7} />,
-      },
+      { path: 'fixture', element: <FixturePagina /> },
       { path: '*', element: <NoEncontradaPagina /> },
     ],
   },

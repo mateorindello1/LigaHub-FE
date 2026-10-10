@@ -20,6 +20,9 @@ importers:
       '@syncfusion/ej2-react-buttons':
         specifier: ^35.1.37
         version: 35.1.37
+      '@syncfusion/ej2-react-calendars':
+        specifier: ^35.1.39
+        version: 35.1.39
       '@syncfusion/ej2-react-dropdowns':
         specifier: ^35.1.39
         version: 35.1.39
@@ -41,6 +44,15 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.104.1
         version: 5.104.1(react@19.3.0)
+      cldr-core:
+        specifier: ^48.2.0
+        version: 48.2.0
+      cldr-dates-full:
+        specifier: ^48.2.0
+        version: 48.2.0(cldr-numbers-full@48.2.0(cldr-core@48.2.0))
+      cldr-numbers-full:
+        specifier: ^48.2.0
+        version: 48.2.0(cldr-core@48.2.0)
       react:
         specifier: ^19.2.8
         version: 19.3.0
@@ -453,6 +465,9 @@ packages:
   '@syncfusion/ej2-react-buttons@35.1.37':
     resolution: {integrity: sha512-RxXtgnwBNpX0tQ1+3IemgcmE9SMr31uFCHNDf6S0QHC/G6LatDRC19/dmD8Yjokgm6Nsj20iPQ0EbxRZ5Ru+rQ==}
 
+  '@syncfusion/ej2-react-calendars@35.1.39':
+    resolution: {integrity: sha512-opHKebsUg2Efihpk3T8UrtlsqZ4jaN9HyOo7yQE8WSrgFFX47q/6mzMmqUx/ULhnrY7at3Y6URFjruu11NELuQ==}
+
   '@syncfusion/ej2-react-dropdowns@35.1.39':
     resolution: {integrity: sha512-PBHxMRlOhKyitW87kE1r02kUwP5bXwJRjAextkibazboT4fnQcqFMVDK9qzYVQyJK/ODZ2d8hHyFw+EQbyjSNA==}
 
@@ -508,6 +523,19 @@ packages:
         optional: true
       oxc-transform-react:
         optional: true
+
+  cldr-core@48.2.0:
+    resolution: {integrity: sha512-zfmLothncSwfv2jlevoSrgI2VGgH8SDGHXst6jUEotHA8nq9Igeg9jzdJDFtBso9pgJuG89DK16TzrmZDdo2Bg==}
+
+  cldr-dates-full@48.2.0:
+    resolution: {integrity: sha512-zMrKvjMO414HDftLr6vKH1fNQHakFNe+F1h4S0eg+zmL4WRi9pI41fxB3UrTJDY42MEM87jCuAw/qlqCgYKcAQ==}
+    peerDependencies:
+      cldr-numbers-full: 48.2.0
+
+  cldr-numbers-full@48.2.0:
+    resolution: {integrity: sha512-0EQ+UkVDsyXOlxnWnL1RIENVZFqCnb04D1Yrku0obnOyttbuZz8tHmUd5c5AEvhGS/Gg2zI4fTaCm51LSGITog==}
+    peerDependencies:
+      cldr-core: 48.2.0
 
   cookie-es@3.1.1:
     resolution: {integrity: sha512-UaXxwISYJPTr9hwQxMFYZ7kNhSXboMXP+Z3TRX6f1/NyaGPfuNUZOWP1pUEb75B2HjfklIYLVRfWiFZJyC6Npg==}
@@ -981,6 +1009,12 @@ snapshots:
       '@syncfusion/ej2-buttons': 35.1.37
       '@syncfusion/ej2-react-base': 35.1.37
 
+  '@syncfusion/ej2-react-calendars@35.1.39':
+    dependencies:
+      '@syncfusion/ej2-base': 35.1.37
+      '@syncfusion/ej2-calendars': 35.1.39
+      '@syncfusion/ej2-react-base': 35.1.37
+
   '@syncfusion/ej2-react-dropdowns@35.1.39':
     dependencies:
       '@syncfusion/ej2-base': 35.1.37
@@ -1045,6 +1079,16 @@ snapshots:
     dependencies:
       '@rolldown/pluginutils': 1.0.1
       vite: 8.3.4(@types/node@24.19.1)
+
+  cldr-core@48.2.0: {}
+
+  cldr-dates-full@48.2.0(cldr-numbers-full@48.2.0(cldr-core@48.2.0)):
+    dependencies:
+      cldr-numbers-full: 48.2.0(cldr-core@48.2.0)
+
+  cldr-numbers-full@48.2.0(cldr-core@48.2.0):
+    dependencies:
+      cldr-core: 48.2.0
 
   cookie-es@3.1.1: {}
 

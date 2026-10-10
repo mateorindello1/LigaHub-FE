@@ -19,7 +19,7 @@ El plan del backend está en [LigaHub-BE/docs/plan-de-desarrollo.md](https://git
 | 4 | [Pantallas CRUD: Torneo y Equipo](#etapa-4--pantallas-crud-torneo-y-equipo) | Hecha |
 | 5 | [Pantalla CRUD dependiente: Inscripción de equipo](#etapa-5--pantalla-crud-dependiente-inscripción-de-equipo) | Hecha |
 | 6 | [Listado con filtro y detalle](#etapa-6--listado-con-filtro-y-detalle) | Hecha |
-| 7 | [Caso de uso: generar el fixture](#etapa-7--caso-de-uso-generar-el-fixture) | Pendiente |
+| 7 | [Caso de uso: generar el fixture](#etapa-7--caso-de-uso-generar-el-fixture) | Hecha |
 | 8 | [Revisión de requisitos de la cátedra](#etapa-8--revisión-de-requisitos-de-la-cátedra) | Pendiente |
 | 9 | [Documentación y proposal](#etapa-9--documentación-y-proposal) | Pendiente |
 | 10 | [Aprobación directa: login, rutas protegidas, tests y ambientes](#etapa-10--aprobación-directa-login-rutas-protegidas-tests-y-ambientes) | Pendiente |
@@ -564,9 +564,103 @@ Se verificó en el navegador:
 
 ## Etapa 7 — Caso de uso: generar el fixture
 
-**Estado:** Pendiente
+**Estado:** Hecha (2026-10-10)
 
-- Botón para generar el fixture de un torneo y vista de las fechas y partidos generados.
+**Objetivo:** el caso de uso que pide la cátedra para regularidad. Con los equipos inscriptos, el sistema arma todas las fechas "todos contra todos", las guarda y pasa el torneo a En curso.
+
+### La pantalla
+
+`/fixture?torneo=2`, en el menú como **Fixture** y en cada tarjeta del inicio. Por defecto abre el primer torneo en curso.
+
+**Torneo en inscripción y sin fixture:**
+- Aviso con la cantidad de equipos inscriptos.
+- Botón **Generar fixture**, deshabilitado si hay menos de 2 equipos. En ese caso el aviso dice cuántos faltan y enlaza a Inscripciones.
+- El diálogo de generación tiene:
+  - **Ida y vuelta** (casilla): dos ruedas, con la localía invertida en la segunda.
+  - **Primera fecha** (fecha y hora, opcional): las siguientes se programan una semana después. Sin fecha, los partidos quedan "a confirmar".
+  - **Resumen calculado mientras se elige:** "Con 4 equipos se van a crear 6 fechas de 2 partidos (12 en total)". Avisa si en cada fecha queda un equipo libre y que el torneo pasa a En curso.
+- Al generar:
+  - El torneo pasa a En curso y aparece el fixture.
+  - Se avisa cuántas fechas se crearon.
+  - El torneo queda fijo en la URL, porque al cambiar de estado el torneo por defecto podría ser otro.
+
+**Torneo con fixture:**
+- Una tarjeta por fecha (1 columna en celular, 2 desde MD).
+- Cada partido muestra local, marcador (o "vs") y visitante; debajo, día y hora local y cancha, y un badge si fue W.O. o se suspendió.
+- Si la cantidad de equipos es impar, la tarjeta indica el equipo libre de la fecha.
+- Botón **Deshacer fixture**, con confirmación: borra las fechas y vuelve el torneo a inscripción. El backend lo rechaza si ya hay partidos jugados o suspendidos, y el motivo se muestra en una notificación.
+
+### Archivos nuevos
+
+| Archivo | Qué es |
+|:--|:--|
+| `src/paginas/FixturePagina.tsx` | La pantalla del caso de uso |
+| `src/componentes/fixture/FormularioGenerarFixture.tsx` | Opciones de generación con el resumen |
+| `src/componentes/fixture/TarjetaFecha.tsx` | Una fecha con sus partidos y el equipo libre |
+| `src/componentes/formularios/CampoCasilla.tsx` | CheckBox de Syncfusion conectado a React Hook Form |
+| `src/componentes/formularios/CampoFechaHora.tsx` | DateTimePicker de Syncfusion conectado a React Hook Form |
+| `src/hooks/fixture.hooks.ts` | `useFixture`, `useGenerarFixture`, `useDeshacerFixture` |
+| `src/utilidades/resumen-fixture.ts` | Cantidad de fechas y partidos, con la misma regla que el backend |
+| `src/validaciones/generar-fixture.validacion.ts` | Esquema Zod: la primera fecha, si se elige, tiene que ser futura |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|:--|:--|
+| `src/rutas.tsx` | `/fixture` apunta a la pantalla nueva |
+| `src/paginas/EnConstruccionPagina.tsx` | Borrado: ya no quedan pantallas en construcción |
+| `src/config/textos-syncfusion.ts` | Carga la cultura española (CLDR) y los textos del calendario |
+| `src/componentes/formularios/BotonesFormulario.tsx` | Textos del botón configurables (`textoGuardar`, `textoProcesando`): en este caso de uso dice "Generar" |
+| `src/index.css` | Estilos del aviso, el resumen y las tarjetas de fechas |
+| `tsconfig.app.json` | `resolveJsonModule: true`, para importar los JSON de CLDR |
+| `package.json` | Dependencias nuevas (ver abajo) |
+
+### Dependencias nuevas
+
+```powershell
+pnpm add "@syncfusion/ej2-react-calendars@^35.1.37"
+pnpm add cldr-core cldr-dates-full cldr-numbers-full
+```
+
+| Paquete | Para qué |
+|:--|:--|
+| `@syncfusion/ej2-react-calendars` | El `DateTimePickerComponent` (selector de fecha y hora) |
+| `cldr-core`, `cldr-dates-full`, `cldr-numbers-full` (48.2.0) | Datos de cultura del proyecto Unicode CLDR: nombres de meses y días, primer día de la semana, formatos |
+
+**Por qué CLDR:** sin esos datos, Syncfusion solo conoce la cultura en inglés y el calendario mostraba "October", "Mo Tu We" y "Today". `config/textos-syncfusion.ts` carga con `loadCldr` los JSON en español, y con eso el calendario muestra "octubre de 2026", la semana empieza el lunes y el botón dice "Hoy".
+- Es el equivalente de `CultureInfo("es")` en .NET, que ahí viene incluido.
+- Se importan solo 5 archivos JSON y Vite empaqueta solo esos, no los paquetes completos.
+
+El JavaScript pasó de 1,96 MB a 2,26 MB (562 KB comprimido) entre el calendario y los datos de cultura.
+
+### Conceptos
+
+- **Caso de uso del lado del cliente:** la regla de negocio (el método del círculo, guardar en una transacción, cambiar el estado del torneo) está en el backend. El frontend junta las opciones, muestra cuánto se va a crear y presenta el resultado. Es tu patrón de Command: el formulario arma el "comando" `{ idaYVuelta, fechaInicio }` y lo envía.
+- **Valores derivados con `useWatch`:** el resumen se calcula en cada dibujo a partir de "ida y vuelta". No se guarda en un estado aparte: si cambia el campo, React vuelve a dibujar y el resumen cambia solo. Es la "reactividad ante un cambio de estado" que pide la cátedra.
+- **Fechas al enviar:** el selector devuelve un `Date` en hora local. `toISOString()` lo convierte a UTC ("2026-10-17T18:00:00.000Z" para las 15:00 de Argentina), que es lo que guarda el backend. Al mostrarlo, `formatearFechaHora` lo vuelve a la hora local.
+- **Invalidación amplia:** generar o deshacer el fixture cambia el estado del torneo. Por eso se invalida `['torneos']` completo: la lista de torneos (con su estado), las inscripciones (que se cierran), las posiciones y el fixture.
+- **Mutación sin datos:** `useDeshacerFixture` no recibe nada (el torneo ya lo tiene el hook), así que se llama `deshacer.mutate(undefined, { onSuccess, onError })`.
+
+### Cómo probarlo
+
+Con el backend levantado y el seed cargado, `pnpm dev` y entrar a **Fixture**.
+
+Se verificó en el navegador:
+- **Apertura:**
+  - Muestra las 5 fechas del seed con resultados, W.O. y suspendidos, y coinciden con el detalle de la etapa 6.
+  - "Deshacer fixture" muestra el rechazo del backend: hay partidos jugados.
+- **Clausura** (4 equipos):
+  - Aviso y botón "Generar fixture".
+  - En el diálogo, el resumen cambia de 3 fechas (6 partidos) a 6 fechas (12 partidos) al marcar ida y vuelta.
+  - El calendario aparece en español.
+  - Una primera fecha pasada (1/10) muestra el error de Zod.
+- **Generación** con ida y vuelta desde el sábado 17/10 a las 15:00:
+  - Crea 6 fechas semanales (17/10, 24/10, 31/10…).
+  - La vuelta invierte la localía.
+  - El torneo pasa a En curso.
+- **Deshacer** en Clausura (sin partidos jugados) lo vuelve a inscripción, como estaba antes de la prueba.
+- **Copa de la Liga 2027** (0 equipos): botón deshabilitado, con el aviso y el enlace a Inscripciones.
+- **Celular (375 px):** tarjetas en una columna y botones del encabezado.
 
 ## Etapa 8 — Revisión de requisitos de la cátedra
 
