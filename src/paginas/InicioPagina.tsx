@@ -4,7 +4,7 @@ import { MensajeError } from '../componentes/comunes/MensajeError';
 import { TarjetaTorneo } from '../componentes/torneos/TarjetaTorneo';
 import { useTorneos } from '../hooks/torneos.hooks';
 
-/** Pantalla de inicio: los torneos con accesos a su tabla de posiciones y su fixture. */
+/** Pantalla de inicio: los torneos con accesos a sus inscripciones, su tabla de posiciones y su fixture. */
 export function InicioPagina() {
   // useTorneos usa useQuery: pide los datos con el servicio, los guarda en caché y expone el
   // estado del pedido. Equivale al OnInitializedAsync + IsBusy + manejo de error de un ViewModel.
@@ -14,7 +14,7 @@ export function InicioPagina() {
     <>
       <EncabezadoPagina
         titulo="Torneos"
-        descripcion="Elegí un torneo para ver su tabla de posiciones o su fixture."
+        descripcion="Elegí un torneo para ver sus inscripciones, su tabla de posiciones o su fixture."
       />
 
       {isPending && <Cargando texto="Cargando torneos…" />}

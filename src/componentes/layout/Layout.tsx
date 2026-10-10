@@ -9,6 +9,7 @@ const OPCIONES_MENU: ItemMenu[] = [
   { ruta: '/', texto: 'Inicio', icono: 'e-home' },
   { ruta: '/torneos', texto: 'Torneos', icono: 'e-grid-view' },
   { ruta: '/equipos', texto: 'Equipos', icono: 'e-people' },
+  { ruta: '/inscripciones', texto: 'Inscripciones', icono: 'e-checklist' },
   { ruta: '/posiciones', texto: 'Posiciones', icono: 'e-chart' },
   { ruta: '/fixture', texto: 'Fixture', icono: 'e-month' },
 ];

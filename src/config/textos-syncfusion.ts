@@ -28,6 +28,10 @@ L10n.load({
       pagerAllDropDown: 'Registros',
       All: 'Todos',
     },
+    'drop-down-list': {
+      noRecordsTemplate: 'No hay opciones para elegir.',
+      actionFailureTemplate: 'No se pudieron cargar las opciones.',
+    },
     dialog: {
       close: 'Cerrar',
     },

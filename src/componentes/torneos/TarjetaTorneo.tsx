@@ -6,7 +6,7 @@ interface Props {
   torneo: Torneo;
 }
 
-/** Tarjeta con los datos de un torneo y accesos a su tabla y su fixture. */
+/** Tarjeta con los datos de un torneo y accesos a sus inscripciones, su tabla y su fixture. */
 export function TarjetaTorneo({ torneo }: Props) {
   return (
     <article className="e-card tarjeta-torneo">
@@ -18,6 +18,12 @@ export function TarjetaTorneo({ torneo }: Props) {
         <BadgeEstadoTorneo estado={torneo.estadoTorneo} />
       </div>
       <div className="e-card-actions">
+        <Link
+          className="e-btn e-flat e-primary"
+          to={`/inscripciones?torneo=${torneo.id}`}
+        >
+          Inscripciones
+        </Link>
         <Link
           className="e-btn e-flat e-primary"
           to={`/posiciones?torneo=${torneo.id}`}

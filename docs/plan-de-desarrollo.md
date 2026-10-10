@@ -17,7 +17,7 @@ El plan del backend está en [LigaHub-BE/docs/plan-de-desarrollo.md](https://git
 | 2 | [Andamiaje del proyecto](#etapa-2--andamiaje-del-proyecto) | Hecha |
 | 3 | [Base de la aplicación: layout, rutas, servicio de API y tipos](#etapa-3--base-de-la-aplicación-layout-rutas-servicio-de-api-y-tipos) | Hecha |
 | 4 | [Pantallas CRUD: Torneo y Equipo](#etapa-4--pantallas-crud-torneo-y-equipo) | Hecha |
-| 5 | [Pantalla CRUD dependiente: Inscripción de equipo](#etapa-5--pantalla-crud-dependiente-inscripción-de-equipo) | Pendiente |
+| 5 | [Pantalla CRUD dependiente: Inscripción de equipo](#etapa-5--pantalla-crud-dependiente-inscripción-de-equipo) | Hecha |
 | 6 | [Listado con filtro y detalle](#etapa-6--listado-con-filtro-y-detalle) | Pendiente |
 | 7 | [Caso de uso: generar el fixture](#etapa-7--caso-de-uso-generar-el-fixture) | Pendiente |
 | 8 | [Revisión de requisitos de la cátedra](#etapa-8--revisión-de-requisitos-de-la-cátedra) | Pendiente |
@@ -410,10 +410,84 @@ Se verificó en el navegador:
 
 ## Etapa 5 — Pantalla CRUD dependiente: Inscripción de equipo
 
-**Estado:** Pendiente
+**Estado:** Hecha (2026-10-10)
 
-- Alta de inscripción eligiendo torneo y equipo.
-- Mostrar el error del backend si el equipo ya está inscripto.
+**Objetivo:** el CRUD dependiente que pide la cátedra. Una inscripción depende de un torneo (y de un equipo): primero se elige el torneo y después se inscriben, cambian o dan de baja equipos en él.
+
+### La pantalla
+
+`/inscripciones?torneo=2`, en el menú como **Inscripciones** y en cada tarjeta del inicio.
+
+- **Selector de torneo** arriba, con el estado del torneo elegido. Si la URL no trae torneo, se elige el primero con las inscripciones abiertas.
+- **Grilla** con los equipos inscriptos y la cantidad.
+- **Inscribir equipo:** diálogo con una lista desplegable que muestra solo los equipos que todavía no están inscriptos.
+- **Modificar** (lápiz): cambia el equipo de la inscripción. La lista incluye el equipo actual, que aparece elegido.
+- **Borrar** (tacho): da de baja la inscripción, con confirmación.
+- **Torneo en curso o finalizado:** aviso "Las inscripciones de este torneo están cerradas", botón deshabilitado y grilla sin columna de acciones. El backend también lo controla (responde 409).
+
+### Archivos nuevos
+
+| Archivo | Qué es |
+|:--|:--|
+| `src/paginas/InscripcionesPagina.tsx` | La pantalla |
+| `src/componentes/inscripciones/FormularioInscripcion.tsx` | Formulario de alta y cambio de equipo |
+| `src/componentes/formularios/CampoLista.tsx` | DropDownList de Syncfusion conectado a React Hook Form |
+| `src/componentes/torneos/SelectorTorneo.tsx` | Filtro por torneo; se reutiliza en posiciones y fixture |
+| `src/hooks/torneo-seleccionado.hook.ts` | Lee y cambia el torneo elegido en la URL |
+| `src/hooks/inscripciones-equipo.hooks.ts` | Consulta y operaciones de inscripciones |
+| `src/validaciones/inscripcion-equipo.validacion.ts` | Esquema Zod: hay que elegir un equipo |
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|:--|:--|
+| `src/rutas.tsx` | Ruta `/inscripciones` |
+| `src/componentes/layout/Layout.tsx` | Opción Inscripciones en el menú (ícono `e-checklist`) |
+| `src/componentes/torneos/TarjetaTorneo.tsx` | Acceso a las inscripciones del torneo |
+| `src/paginas/InicioPagina.tsx` | Descripción actualizada |
+| `src/config/textos-syncfusion.ts` | Textos de la lista desplegable ("No hay opciones para elegir.") |
+| `src/index.css` | Estilos del selector, el aviso y el resumen |
+
+### Conceptos
+
+- **Ruta anidada en el backend, filtro en el frontend:** la API es `/torneos/:torneoId/inscripciones`, y la pantalla trabaja siempre sobre un torneo elegido. Los hooks reciben el `torneoId` y lo pasan al servicio.
+- **Estado en la URL (`useSearchParams`):** el torneo elegido vive en `?torneo=2` y no en un `useState`. Así el enlace se puede compartir, Atrás funciona y las tarjetas del inicio abren la pantalla con el torneo ya elegido. Equivale a un `[SupplyParameterFromQuery]` de Blazor. Se cambia con `replace: true` para no llenar el historial con cada cambio de filtro.
+- **Valor deducido en lugar de sincronizado:** `useTorneoSeleccionado` no guarda estado: en cada dibujo calcula el torneo a partir de la URL y la lista. No hace falta un `useEffect` para "poner el torneo por defecto".
+- **Consulta en espera (`skipToken`):** mientras no hay torneo, `useInscripciones` no pide nada. Se usa `isLoading` (pidiendo por primera vez) en lugar de `isPending` (sin datos todavía), que en espera sería siempre verdadero.
+- **Reglas de los hooks:** los hooks no se pueden llamar dentro de un `if`. Por eso las operaciones se crean siempre, con `torneoId ?? 0`, y los botones que las usan solo se muestran si hay torneo.
+- **Invalidación por torneo:** después de inscribir, cambiar o dar de baja se invalida `['torneos', torneoId]`. Se recargan las inscripciones y también las posiciones, el detalle y el fixture de ese torneo.
+- **`key` para recrear la grilla:** la grilla tiene `key={torneo.id + abiertas}`. Al cambiar de torneo, React la crea de nuevo con las columnas que correspondan; Syncfusion no siempre refleja que se agregue o quite una columna en una grilla ya creada.
+- **Selector como input/output property:** `SelectorTorneo` recibe `valor` y avisa `onCambiar`, sin estado propio. Es el patrón `Value` / `ValueChanged` de un componente de Blazor.
+
+### Syncfusion: objetos en las props
+
+Al principio, elegir una opción de la lista desplegable a veces no quedaba tomado: la lista seguía abierta o volvía al valor anterior.
+
+La causa: `CampoLista` pasaba `fields={{ text, value }}` y `htmlAttributes={{ … }}` escritos dentro del JSX, que crean **un objeto nuevo en cada dibujo**. Al elegir una opción, el formulario se vuelve a dibujar; Syncfusion recibe objetos "distintos" (aunque tengan lo mismo), lo toma como un cambio de configuración y recarga la lista en medio de la selección.
+
+La solución fue pasar siempre el mismo objeto mientras no cambien los datos:
+- Con `useMemo` dentro del componente (`campos`, `atributos` en `CampoLista`).
+- Con una constante fuera del componente cuando no depende de nada (`CAMPOS` en `SelectorTorneo`).
+- Con `useMemo` para la lista de equipos disponibles en la página.
+
+**Regla para los componentes de Syncfusion:** no escribir objetos ni arreglos en las props dentro del JSX si el componente se puede volver a dibujar mientras el usuario interactúa. En Blazor no pasa porque los parámetros solo se aplican si cambian.
+
+### Cómo probarlo
+
+Con el backend levantado y el seed cargado, `pnpm dev` y entrar a **Inscripciones**, o a **Inscripciones** en la tarjeta de un torneo.
+
+Se verificó en el navegador:
+- **Cambio de torneo:** el selector actualiza la URL y la grilla.
+- **Torneo cerrado:** con Apertura (en curso), entrando desde su tarjeta, aparecen el aviso, el botón deshabilitado y la grilla sin acciones. Al volver a Clausura reaparece la columna.
+- **Alta:**
+  - Enviar sin elegir muestra "Elegí un equipo.".
+  - La lista muestra solo los equipos no inscriptos.
+  - Al inscribir, la grilla y la cantidad se actualizan y aparece el aviso.
+- **Cambio de equipo:** la lista se abre con el equipo actual elegido y guarda el cambio.
+- **Baja** con confirmación.
+- **Celular (375 px):** selector, grilla y diálogo. En celular, Syncfusion muestra la lista desplegable a todo el ancho.
+
+Las inscripciones de prueba se dieron de baja: Clausura quedó con sus 4 equipos del seed.
 
 ## Etapa 6 — Listado con filtro y detalle
 

@@ -4,7 +4,7 @@ import { registerLicense } from '@syncfusion/ej2-base';
 // Tema Material 3 de Syncfusion: solo los estilos de los componentes que se usan.
 import './estilos/syncfusion.css';
 import './index.css';
-// Textos de Syncfusion en español (grilla, paginador, diálogo).
+// Textos de Syncfusion en español (grilla, paginador, listas, diálogo).
 import './config/textos-syncfusion';
 import App from './App.tsx';
 
