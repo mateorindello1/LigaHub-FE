@@ -18,7 +18,7 @@ El plan del backend está en [LigaHub-BE/docs/plan-de-desarrollo.md](https://git
 | 3 | [Base de la aplicación: layout, rutas, servicio de API y tipos](#etapa-3--base-de-la-aplicación-layout-rutas-servicio-de-api-y-tipos) | Hecha |
 | 4 | [Pantallas CRUD: Torneo y Equipo](#etapa-4--pantallas-crud-torneo-y-equipo) | Hecha |
 | 5 | [Pantalla CRUD dependiente: Inscripción de equipo](#etapa-5--pantalla-crud-dependiente-inscripción-de-equipo) | Hecha |
-| 6 | [Listado con filtro y detalle](#etapa-6--listado-con-filtro-y-detalle) | Pendiente |
+| 6 | [Listado con filtro y detalle](#etapa-6--listado-con-filtro-y-detalle) | Hecha |
 | 7 | [Caso de uso: generar el fixture](#etapa-7--caso-de-uso-generar-el-fixture) | Pendiente |
 | 8 | [Revisión de requisitos de la cátedra](#etapa-8--revisión-de-requisitos-de-la-cátedra) | Pendiente |
 | 9 | [Documentación y proposal](#etapa-9--documentación-y-proposal) | Pendiente |
@@ -491,10 +491,76 @@ Las inscripciones de prueba se dieron de baja: Clausura quedó con sus 4 equipos
 
 ## Etapa 6 — Listado con filtro y detalle
 
-**Estado:** Pendiente
+**Estado:** Hecha (2026-10-10)
 
-- Tabla de posiciones con filtro por torneo.
-- Al seleccionar un equipo, pedido al backend y pantalla de detalle con datos de al menos dos clases de negocio.
+**Objetivo:** el "listado con filtro + detalle" que pide la cátedra. El listado es la tabla de posiciones filtrada por torneo. Al elegir un equipo, se hace un pedido al backend y se muestra su detalle, con datos de varias clases de negocio: Torneo, Equipo, Partido y Jugador.
+
+### Las pantallas
+
+**Posiciones** (`/posiciones?torneo=1`):
+- Usa el mismo selector de torneo que Inscripciones. Por defecto elige el primer torneo en curso.
+- La tabla trae, en orden: #, Equipo, PJ, G, E, P, GF, GC, DG y Pts. Debajo hay una referencia de las abreviaturas y del criterio de desempate.
+- El nombre de cada equipo es un enlace a su detalle.
+- En celular solo se ven #, Equipo, PJ, DG y Pts.
+
+**Detalle del equipo** (`/posiciones/:torneoId/equipos/:equipoId`):
+- **Encabezado:** escudo, nombre, torneo y estado del torneo.
+- **Cifras:** posición, puntos, jugados, ganados, empatados, perdidos, goles a favor, goles en contra y diferencia, como tarjetas (3 por fila en celular, 5 en MD, 9 en LG).
+- **Partidos:** fecha, rival (L/V), resultado ("G 3 - 1", "W.O." o el estado si no se jugó), día y hora local y cancha. En celular se ocultan día y hora y cancha; en MD, la cancha.
+- **Jugadores:** número, apellido y nombre, y la marca del capitán.
+- **"Volver a la tabla":** vuelve a las posiciones del mismo torneo.
+- **Errores:**
+  - Si el equipo no está inscripto en el torneo, se muestra el 404 del backend, sin botón de reintentar.
+  - Si la URL tiene ids que no son números, aparece la página de "no encontrada".
+
+La ruta del detalle cuelga de `/posiciones` (y no de `/torneos`) para que el menú marque **Posiciones** mientras se ve un equipo.
+
+### Archivos
+
+| Archivo | Qué es |
+|:--|:--|
+| `src/paginas/PosicionesPagina.tsx` | Tabla de posiciones con el filtro por torneo |
+| `src/paginas/DetalleEquipoPagina.tsx` | Detalle del equipo en el torneo |
+| `src/componentes/posiciones/CifrasEquipo.tsx` | Tarjetas con las cifras del equipo |
+| `src/componentes/posiciones/ResultadoPartido.tsx` | Resultado con badge G/E/P, W.O. o estado del partido |
+| `src/hooks/posiciones.hooks.ts` | `usePosiciones` y `useDetalleEquipo` (solo consultas) |
+| `src/utilidades/formato.ts` | Fecha y hora local, diferencia de gol con signo |
+| `src/rutas.tsx` | Rutas `/posiciones` y `/posiciones/:torneoId/equipos/:equipoId` |
+| `src/index.css` | Estilos de cifras, detalle, enlaces y grillas compactas |
+
+### Conceptos
+
+- **Parámetros de ruta (`useParams`):** el detalle lee `torneoId` y `equipoId` de la URL. Equivale a `@page "/posiciones/{TorneoId:int}/equipos/{EquipoId:int}"` con sus `[Parameter]`. React Router no tipa ni valida los parámetros: llegan como texto y se convierten y validan a mano.
+- **Hooks y `return` anticipado:** un hook no se puede llamar después de un `return` condicional. Por eso `DetalleEquipoPagina` valida los ids y, si están bien, dibuja un componente interno (`DetalleEquipo`) que es el que usa `useDetalleEquipo`.
+- **Datos calculados, sin mutaciones:** las posiciones se calculan en el backend a partir de los partidos. Esta pantalla solo consulta. Cuando se carguen resultados o se genere el fixture (etapa 7), basta con invalidar `['torneos', id]` para que la tabla y el detalle se actualicen.
+- **Fechas en hora local:** la API manda UTC (`"2026-09-19T20:00:00.000Z"`) y `Intl.DateTimeFormat('es-AR', …)` la muestra en la hora del navegador con formato de 24 h ("sáb, 19 sept, 17:00"). Es el `ToLocalTime().ToString(...)` de .NET.
+- **Enlaces dentro de la grilla:** la plantilla de la columna Equipo devuelve un `<Link>` de React Router. Para que la plantilla no dependa del torneo elegido (y la grilla no la vuelva a crear), cada fila lleva su `torneoId`, agregado con `useMemo`.
+
+### Grillas en pantallas chicas
+
+La tabla de posiciones tiene 10 columnas y en celular no entra.
+- **Columnas según el ancho:** con `hideAtMedia` se ocultan G, E, P, GF y GC por debajo de MD.
+- **Relleno de las celdas:** Syncfusion les pone 12 px a cada lado y en una columna de 48 px los títulos se cortaban ("P.", "D."). La clase `tabla-compacta` lo baja a 4 px en SM y MD.
+  - Hubo que superar selectores de Syncfusion muy específicos, como `.e-grid.e-device .e-headercell:first-child`.
+  - Se resolvió repitiendo la clase: `.e-grid.tabla-compacta.tabla-compacta .e-headercell`.
+- **Nombres largos:** las celdas de la grilla no cortan líneas. Los nombres de equipo y de rival pueden ocupar dos líneas con `white-space: normal` y un interlineado más chico.
+
+> **Vite y escrituras rápidas:** al modificar `index.css` varias veces en el mismo segundo, Vite se quedó con una versión intermedia y el navegador seguía viendo la regla vieja. Se resolvió guardando el archivo de nuevo. Si un cambio de CSS no aparece, conviene volver a guardar el archivo o reiniciar `pnpm dev`.
+
+### Cómo probarlo
+
+Con el backend levantado y el seed cargado, `pnpm dev` y entrar a **Posiciones**, o a **Posiciones** en la tarjeta de un torneo.
+
+Se verificó en el navegador:
+- **Torneo por defecto:** la tabla abre con Apertura (en curso). Las cifras coinciden con los partidos del seed; por ejemplo, Atlético Norte: 2 ganados y 1 empatado, 7 puntos, 9-3, +6.
+- **Clausura** (sin fixture): todos los equipos con 0.
+- **Detalle de Atlético Norte y de Estrella Roja:**
+  - Las cifras coinciden con su fila de la tabla.
+  - Partidos ganados, empatados, por W.O., suspendidos y programados.
+  - Jugadores con capitán.
+- **Volver a la tabla** mantiene el torneo.
+- **Errores:** `/posiciones/2/equipos/1` (equipo no inscripto) muestra el mensaje del backend, y `/posiciones/abc/equipos/1`, la página de "no encontrada".
+- **Breakpoints:** 1280, 800 y 375 px, tanto en la tabla como en el detalle.
 
 ## Etapa 7 — Caso de uso: generar el fixture
 

@@ -1,10 +1,12 @@
 import { createBrowserRouter } from 'react-router';
 import { Layout } from './componentes/layout/Layout';
 import { EnConstruccionPagina } from './paginas/EnConstruccionPagina';
+import { DetalleEquipoPagina } from './paginas/DetalleEquipoPagina';
 import { EquiposPagina } from './paginas/EquiposPagina';
 import { InicioPagina } from './paginas/InicioPagina';
 import { InscripcionesPagina } from './paginas/InscripcionesPagina';
 import { NoEncontradaPagina } from './paginas/NoEncontradaPagina';
+import { PosicionesPagina } from './paginas/PosicionesPagina';
 import { TorneosPagina } from './paginas/TorneosPagina';
 
 /**
@@ -20,9 +22,10 @@ export const router = createBrowserRouter([
       { path: 'torneos', element: <TorneosPagina /> },
       { path: 'equipos', element: <EquiposPagina /> },
       { path: 'inscripciones', element: <InscripcionesPagina /> },
+      { path: 'posiciones', element: <PosicionesPagina /> },
       {
-        path: 'posiciones',
-        element: <EnConstruccionPagina titulo="Posiciones" etapa={6} />,
+        path: 'posiciones/:torneoId/equipos/:equipoId',
+        element: <DetalleEquipoPagina />,
       },
       {
         path: 'fixture',

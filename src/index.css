@@ -214,6 +214,143 @@ h1 {
 }
 /* #endregion */
 
+/* #region Posiciones y detalle de equipo */
+.enlace-equipo {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Las celdas de la grilla no cortan líneas; los nombres largos sí pueden ocupar dos. */
+.enlace-equipo span:last-child,
+.texto-ajustable {
+  white-space: normal;
+  line-height: 1.25;
+}
+
+/* tabla-compacta: en SM y MD, menos relleno en las celdas para que entren los números y los títulos. */
+@media (max-width: 991px) {
+  /*
+   * Clase repetida a propósito: Syncfusion usa selectores muy específicos para el relleno, como
+   * ".e-grid.e-device .e-headercell:first-child", y hay que superarlos.
+   */
+  .e-grid.tabla-compacta.tabla-compacta .e-headercell,
+  .e-grid.tabla-compacta.tabla-compacta .e-rowcell {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+}
+
+.enlace-equipo:hover span:last-child,
+.enlace-equipo:focus-visible span:last-child {
+  color: rgb(var(--color-sf-primary));
+  text-decoration: underline;
+}
+
+.texto-secundario,
+.referencias {
+  color: rgb(var(--color-sf-on-surface-variant));
+}
+
+.referencias {
+  margin: 12px 0 0;
+  font-size: 0.8125rem;
+}
+
+.enlace-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 16px;
+  color: rgb(var(--color-sf-primary));
+  text-decoration: none;
+}
+
+.encabezado-equipo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.encabezado-equipo__torneo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  color: rgb(var(--color-sf-on-surface-variant));
+}
+
+/* Cifras: 3 por fila en celular, todas en una fila desde LG. */
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0 0 24px;
+}
+
+.cifra {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgb(var(--color-sf-surface-variant));
+}
+
+.cifra dt {
+  font-size: 0.75rem;
+  color: rgb(var(--color-sf-on-surface-variant));
+}
+
+.cifra dd {
+  margin: 2px 0 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.cifra--destacada {
+  background: rgb(var(--color-sf-primary-container));
+  color: rgb(var(--color-sf-on-primary-container));
+}
+
+.cifra--destacada dt {
+  color: inherit;
+}
+
+.detalle-equipo__secciones {
+  display: grid;
+  gap: 24px;
+}
+
+.detalle-equipo__secciones h2 {
+  margin: 0 0 12px;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.resultado-partido,
+.celda-jugador {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .cifras {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* Partidos y jugadores van uno debajo del otro: lado a lado, la grilla de partidos no entra. */
+.detalle-equipo__jugadores {
+  max-width: 560px;
+}
+
+@media (min-width: 992px) {
+  .cifras {
+    grid-template-columns: repeat(9, 1fr);
+  }
+}
+/* #endregion */
+
 /* #region Escudos */
 .escudo {
   flex-shrink: 0;
