@@ -761,7 +761,7 @@ El diseño (mecanismo, roles, permisos y medidas) está decidido en [seguridad.m
 
 | Subetapa | Qué incluye | Backend | Frontend | Estado |
 |:-:|:--|:-:|:-:|:-:|
-| S-1 | Usuarios, contraseñas con Argon2id y usuarios de prueba (uno por rol) | Sí | No | Pendiente |
+| S-1 | Usuarios, contraseñas con Argon2id y usuarios de prueba (uno por rol) | Sí | No | Hecha |
 | S-2 | Login con JWT, límite de intentos y datos del usuario actual | Sí | No | Pendiente |
 | S-3 | Protección de la API: guard global, guard de roles, mensajes 401 y 403, Swagger con token | Sí | No | Pendiente |
 | S-4 | Login, sesión y envío del token desde el cliente de API | No | Sí | Pendiente |

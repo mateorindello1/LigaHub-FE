@@ -107,7 +107,7 @@ erDiagram
         int id PK
         varchar email UK
         varchar contraseniaHash
-        varchar fotoPerfilURL
+        varchar fotoPerfilURL "opcional"
         int jugadorId FK "opcional"
     }
     USUARIO_ROL {
