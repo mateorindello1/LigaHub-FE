@@ -22,7 +22,8 @@ El plan del backend está en [LigaHub-BE/docs/plan-de-desarrollo.md](https://git
 | 7 | [Caso de uso: generar el fixture](#etapa-7--caso-de-uso-generar-el-fixture) | Hecha |
 | 8 | [Revisión de requisitos de la cátedra](#etapa-8--revisión-de-requisitos-de-la-cátedra) | Hecha |
 | 9 | [Documentación y proposal](#etapa-9--documentación-y-proposal) | Pendiente |
-| 10 | [Aprobación directa: login, rutas protegidas, tests y ambientes](#etapa-10--aprobación-directa-login-rutas-protegidas-tests-y-ambientes) | Pendiente |
+| 10 | [Seguridad: login y permisos (S-1 a S-6)](#etapa-10--seguridad-login-y-permisos) | Pendiente |
+| 11 | [Aprobación directa (AD-1 a AD-6)](#etapa-11--aprobación-directa) | En curso |
 
 ---
 
@@ -750,10 +751,75 @@ La verificación completa, requisito por requisito y con enlaces al archivo y la
   - Declarar React como tecnología no vista en el cursado.
 - `docs/README.md` como entrada, enlazado desde el README principal.
 
-## Etapa 10 — Aprobación directa: login, rutas protegidas, tests y ambientes
+## Etapa 10 — Seguridad: login y permisos
 
 **Estado:** Pendiente
 
-- Login y protección de rutas según los roles del backend (Administrador, Asistente, Jugador). El token JWT se guarda en memoria y en `sessionStorage` y se envía en el encabezado `Authorization` desde el servicio de API. Sin tokens de refresco por ahora. Diseño completo en [LigaHub-BE/docs/seguridad.md](https://github.com/mateorindello1/LigaHub-BE/blob/main/docs/seguridad.md).
-- Un test unitario de componente y un test end-to-end.
-- Ambientes definidos (`.env`).
+Login y permisos por rol. La cátedra los pide para la aprobación directa, pero se hacen como etapa propia y **antes** del resto de la aprobación directa: así los endpoints y pantallas nuevos (jugadores, canchas, carga de resultados) nacen protegidos y no hay que volver sobre ellos. Los decoradores `@Publico()` y `@Roles(...)` ya están en todos los endpoints desde la etapa 4; esta etapa los activa.
+
+El diseño (mecanismo, roles, permisos y medidas) está decidido en [seguridad.md](https://github.com/mateorindello1/LigaHub-BE/blob/main/docs/seguridad.md). Las subetapas tienen la misma numeración en los planes del backend y del frontend.
+
+| Subetapa | Qué incluye | Backend | Frontend | Estado |
+|:-:|:--|:-:|:-:|:-:|
+| S-1 | Usuarios, contraseñas con Argon2id y usuarios de prueba (uno por rol) | Sí | No | Pendiente |
+| S-2 | Login con JWT, límite de intentos y datos del usuario actual | Sí | No | Pendiente |
+| S-3 | Protección de la API: guard global, guard de roles, mensajes 401 y 403, Swagger con token | Sí | No | Pendiente |
+| S-4 | Login, sesión y envío del token desde el cliente de API | No | Sí | Pendiente |
+| S-5 | Pantallas, menú y acciones según el rol; sesión vencida (401) y sin permiso (403) | No | Sí | Pendiente |
+| S-6 | Gestión de usuarios y roles por el administrador | Sí | Sí | Pendiente |
+
+### S-4 — Login y sesión
+
+- Pantalla de login (email y contraseña) con React Hook Form y Zod.
+- Contexto de sesión (`useSesion`): usuario, roles, iniciar y cerrar sesión. Equivale a un `AuthenticationStateProvider` de Blazor.
+- El token se guarda en memoria y en `sessionStorage` (la sesión termina al cerrar la pestaña), y el cliente de API lo envía en `Authorization: Bearer`.
+- En la barra superior, el usuario de la sesión y "Cerrar sesión".
+
+### S-5 — Permisos en las pantallas
+
+- Rutas protegidas por rol: sin sesión, se redirige al login y después se vuelve a la pantalla pedida.
+- Menú y acciones según el rol: el público ve torneos, posiciones y fixture; los botones de crear, modificar, borrar y generar el fixture solo los ve el Administrador. Equivale a `<AuthorizeView Roles="...">`.
+- **401** (sesión vencida): se cierra la sesión y se vuelve al login con un aviso. **403** (sin permiso): mensaje claro.
+
+### S-6 — Gestión de usuarios (frontend)
+
+- Pantalla de usuarios para el Administrador: grilla, alta y modificación con los roles, y cambio de contraseña.
+
+## Etapa 11 — Aprobación directa
+
+**Estado:** En curso (AD-1 hecha, en el backend)
+
+Subetapas con la misma numeración en los planes del backend y del frontend. Requiere la etapa de seguridad: los endpoints y pantallas nuevos se protegen por rol desde el principio. El orden tiene un motivo:
+- **AD-1 se adelantó:** es un requisito de regularidad.
+- **AD-2 antes que AD-4:** para cargar un resultado hacen falta jugadores inscriptos.
+- **Los tests de cada subetapa se escriben en la misma subetapa.** AD-5 cubre los que pide la cátedra y no corresponden a una en particular.
+
+| Subetapa | Qué incluye | Backend | Frontend | Estado |
+|:-:|:--|:-:|:-:|:-:|
+| AD-1 | Base de datos en la nube (Azure SQL). **También es requisito de regularidad** | Sí | No | Hecha |
+| AD-2 | CRUD de Jugador e Inscripción de jugador | Sí | Sí | Pendiente |
+| AD-3 | CRUD de Predio y Cancha, y asignar cancha y horario a los partidos | Sí | Sí | Pendiente |
+| AD-4 | Caso de uso: cargar el resultado de un partido | Sí | Sí | Pendiente |
+| AD-5 | Tests que faltan | Sí | Sí | Pendiente |
+| AD-6 | Ambientes y deploy | Sí | Sí | Pendiente |
+
+### AD-2 y AD-3 — Pantallas de los CRUD nuevos
+
+- Jugadores, e Inscripción de jugadores dentro de la inscripción de cada equipo. El rol Jugador ve y modifica sus propios datos.
+- Predios y Canchas.
+- Asignar cancha y día y hora a los partidos desde el fixture.
+
+### AD-4 — Pantalla para cargar el resultado
+
+- Desde el fixture, elegir un partido y cargar los jugadores y los eventos (gol, tarjetas, cambios).
+- Ver el resultado calculado antes de confirmar.
+
+### AD-5 — Tests
+
+- Un test unitario de componente (Vitest con Testing Library).
+- Un test end-to-end (Playwright) de un recorrido completo, por ejemplo: login → generar fixture → ver posiciones.
+
+### AD-6 — Ambientes y deploy
+
+- Ambientes con los modos de Vite (`.env.development`, `.env.production`).
+- Deploy del frontend (por ejemplo, Azure Static Web Apps) apuntando a la API publicada.
