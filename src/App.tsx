@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router/dom';
 import { ErrorApi } from './api/error-api';
 import { ProveedorNotificaciones } from './componentes/notificaciones/ProveedorNotificaciones';
+import { ProveedorSesion } from './componentes/sesion/ProveedorSesion';
 import { router } from './rutas';
 
 /** Configuración de TanStack Query para toda la aplicación. */
@@ -18,12 +19,15 @@ const clienteConsultas = new QueryClient({
   },
 });
 
-/** Componente raíz: proveedores globales (datos y notificaciones) y rutas. */
+/** Componente raíz: proveedores globales (datos, notificaciones y sesión) y rutas. */
 export default function App() {
   return (
     <QueryClientProvider client={clienteConsultas}>
       <ProveedorNotificaciones>
-        <RouterProvider router={router} />
+        {/* La sesión va dentro de las notificaciones: avisa cuando la sesión vence. */}
+        <ProveedorSesion>
+          <RouterProvider router={router} />
+        </ProveedorSesion>
       </ProveedorNotificaciones>
     </QueryClientProvider>
   );

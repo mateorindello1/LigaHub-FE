@@ -24,6 +24,53 @@
 }
 /* #endregion */
 
+/* #region Sesión en la barra: en SM solo íconos; desde MD, email, rol y textos */
+.menu-sesion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-sesion__usuario {
+  display: none;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+
+.menu-sesion__email {
+  font-size: 0.875rem;
+}
+
+.menu-sesion__rol {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.menu-sesion__texto,
+.menu-sesion__ingresar span:last-child {
+  display: none;
+}
+
+.menu-sesion__ingresar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+@media (min-width: 768px) {
+  .menu-sesion__usuario {
+    display: flex;
+  }
+
+  .menu-sesion__texto,
+  .menu-sesion__ingresar span:last-child {
+    display: inline;
+  }
+}
+/* #endregion */
+
 /* #region Menú: en SM y MD está oculto a la izquierda y se desliza al abrirlo */
 .layout__menu {
   position: fixed;

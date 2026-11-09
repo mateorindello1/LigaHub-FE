@@ -68,6 +68,12 @@ export const router = createBrowserRouter([
                 .FixturePagina,
             }),
           },
+          {
+            path: 'login',
+            lazy: async () => ({
+              Component: (await import('./paginas/LoginPagina')).LoginPagina,
+            }),
+          },
           { path: '*', element: <NoEncontradaPagina /> },
         ],
       },

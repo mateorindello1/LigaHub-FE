@@ -22,7 +22,7 @@ El plan del backend está en [LigaHub-BE/docs/plan-de-desarrollo.md](https://git
 | 7 | [Caso de uso: generar el fixture](#etapa-7--caso-de-uso-generar-el-fixture) | Hecha |
 | 8 | [Revisión de requisitos de la cátedra](#etapa-8--revisión-de-requisitos-de-la-cátedra) | Hecha |
 | 9 | [Documentación y proposal](#etapa-9--documentación-y-proposal) | Pendiente |
-| 10 | [Seguridad: login y permisos (S-1 a S-6)](#etapa-10--seguridad-login-y-permisos) | Pendiente |
+| 10 | [Seguridad: login y permisos (S-1 a S-6)](#etapa-10--seguridad-login-y-permisos) | En curso |
 | 11 | [Aprobación directa (AD-1 a AD-6)](#etapa-11--aprobación-directa) | En curso |
 
 ---
@@ -753,7 +753,7 @@ La verificación completa, requisito por requisito y con enlaces al archivo y la
 
 ## Etapa 10 — Seguridad: login y permisos
 
-**Estado:** Pendiente
+**Estado:** En curso (S-1 a S-4 hechas)
 
 Login y permisos por rol. La cátedra los pide para la aprobación directa, pero se hacen como etapa propia y **antes** del resto de la aprobación directa: así los endpoints y pantallas nuevos (jugadores, canchas, carga de resultados) nacen protegidos y no hay que volver sobre ellos. Los decoradores `@Publico()` y `@Roles(...)` ya están en todos los endpoints desde la etapa 4; esta etapa los activa.
 
@@ -764,16 +764,79 @@ El diseño (mecanismo, roles, permisos y medidas) está decidido en [seguridad.m
 | S-1 | Usuarios, contraseñas con Argon2id y usuarios de prueba (uno por rol) | Sí | No | Hecha |
 | S-2 | Login con JWT, límite de intentos y datos del usuario actual | Sí | No | Hecha |
 | S-3 | Protección de la API: guard global, guard de roles, mensajes 401 y 403, Swagger con token | Sí | No | Hecha |
-| S-4 | Login, sesión y envío del token desde el cliente de API | No | Sí | Pendiente |
+| S-4 | Login, sesión y envío del token desde el cliente de API | No | Sí | Hecha |
 | S-5 | Pantallas, menú y acciones según el rol; sesión vencida (401) y sin permiso (403) | No | Sí | Pendiente |
 | S-6 | Gestión de usuarios y roles por el administrador | Sí | Sí | Pendiente |
 
 ### S-4 — Login y sesión
 
-- Pantalla de login (email y contraseña) con React Hook Form y Zod.
-- Contexto de sesión (`useSesion`): usuario, roles, iniciar y cerrar sesión. Equivale a un `AuthenticationStateProvider` de Blazor.
-- El token se guarda en memoria y en `sessionStorage` (la sesión termina al cerrar la pestaña), y el cliente de API lo envía en `Authorization: Bearer`.
-- En la barra superior, el usuario de la sesión y "Cerrar sesión".
+**Estado:** Hecha (2026-11-09)
+
+#### Qué se ve
+
+- **Barra superior:**
+  - Sin sesión: "Ingresar" (en celular, solo el ícono).
+  - Con sesión: el email y el rol, y "Salir" (en celular, solo el ícono).
+- **Pantalla `/login`:** email y contraseña. Al ingresar, vuelve a la pantalla desde la que se tocó "Ingresar" (`/login?volver=/torneos`) y saluda.
+- **Errores en el formulario:**
+  - Validación antes de enviar: "El email es obligatorio.", "El email no tiene un formato válido.", "La contraseña es obligatoria.".
+  - Lo que responde el backend: "Credenciales inválidas.", o "Demasiados intentos…" al sexto intento.
+- **La sesión dura mientras la pestaña esté abierta:** sobrevive a recargar la página, no a cerrar la pestaña.
+- **Si el token vence o deja de ser válido,** la sesión se cierra sola y aparece "Tu sesión venció. Iniciá sesión de nuevo.".
+
+#### Archivos
+
+| Archivo | Qué es |
+|:--|:--|
+| `src/modelos/sesion.ts` | `Rol` (objeto `as const`), `UsuarioSesion`, `DatosLogin` y `RespuestaLogin` |
+| `src/servicios/auth.servicio.ts` | `POST /auth/login` y `GET /auth/yo` |
+| `src/api/sesion-guardada.ts` | La sesión en memoria y en `sessionStorage`, con suscriptores |
+| `src/api/cliente-api.ts` | Envía `Authorization: Bearer <token>` y cierra la sesión ante un 401 si había mandado token |
+| `src/componentes/sesion/contexto-sesion.ts` | `useSesion()`: usuario, `iniciarSesion`, `cerrarSesion`, `tieneRol(...)` |
+| `src/componentes/sesion/ProveedorSesion.tsx` | Revalida la sesión al abrir la aplicación, la cierra al vencer y avisa |
+| `src/componentes/sesion/MenuSesion.tsx` | El área de sesión de la barra superior |
+| `src/paginas/LoginPagina.tsx` | Pantalla de login (ruta `/login`, con carga diferida) |
+| `src/validaciones/login.validacion.ts` | Esquema Zod del login |
+| `src/componentes/formularios/CampoTexto.tsx` | Tipos `email` y `password`, y atributo `autocomplete` |
+| `src/componentes/notificaciones/ProveedorNotificaciones.tsx` | El Toast queda dentro de un `div` fijo (ver el problema más abajo) |
+| `src/App.tsx`, `src/rutas.tsx`, `src/componentes/layout/*` | Proveedor de sesión, ruta `/login` y el área de sesión en la barra |
+
+#### Conceptos
+
+- **Dónde vive la sesión:** en memoria (la variable del módulo `sesion-guardada.ts`) y en `sessionStorage`, como se decidió en `seguridad.md` del backend. `sessionStorage` es por pestaña y se borra al cerrarla. La alternativa más segura frente a XSS, una cookie `httpOnly`, quedó como mejora a futuro.
+- **Almacén externo con suscriptores (Observer):** la sesión no está en un `useState`, porque también la necesita el cliente de API, que no es un componente. `sesion-guardada.ts` guarda el valor y avisa a los suscriptores cuando cambia. Los componentes lo leen con **`useSyncExternalStore`**, el hook de React para almacenes externos, y se vuelven a dibujar solos. Equivale a un servicio *singleton* con un evento `OnChange` que los componentes Blazor escuchan.
+- **Contexto de sesión (`useSesion`):** el `AuthenticationStateProvider` de Blazor. Cualquier componente sabe quién inició sesión y con qué roles (`tieneRol(Rol.Administrador)`).
+- **Envío del token:** el cliente de API agrega `Authorization: Bearer` a todos los pedidos si hay sesión. Equivale a un `DelegatingHandler` de `HttpClient`.
+- **401 con token = sesión inválida:** si la API rechaza un token que se envió, la sesión se cierra. Un 401 sin token (por ejemplo, credenciales incorrectas en el login) no cierra nada.
+- **Revalidación al abrir:** con una sesión guardada, la aplicación pide `GET /auth/yo`. Si el usuario cambió (por ejemplo, sus roles), se actualiza; si el token ya no sirve, la API responde 401 y la sesión se cierra.
+- **Vencimiento:** un temporizador cierra la sesión justo cuando vence el token (8 horas) y avisa.
+- **Redirección segura:** `?volver=` solo se acepta si es una ruta propia (empieza con `/` y no con `//`). Así un enlace armado por otro no puede mandar al usuario a un sitio externo después del login (*open redirect*).
+- **`autocomplete`:** `username` en el email y `current-password` en la contraseña. Los navegadores y los gestores de contraseñas reconocen el formulario y ofrecen completarlo.
+
+#### Problema encontrado: la aplicación se rompía al mostrar un aviso durante la carga
+
+Con una sesión vencida guardada, al abrir la aplicación la pantalla quedaba en blanco y la consola mostraba "Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node", seguido de "Maximum update depth exceeded".
+
+- **Causa:** el `ToastComponent` de Syncfusion **mueve su elemento al `<body>`**, fuera de `#root`. Para React ese elemento sigue siendo el hermano siguiente de toda la aplicación. El aviso "Tu sesión venció" se mostraba mientras todavía se cargaba la primera pantalla (carga diferida). Cuando la pantalla terminaba de cargar, React intentaba insertarla "antes" del Toast, que ya no estaba ahí, y fallaba.
+- **Primer intento, que no funcionó:** se sospechó del `AppBarComponent`, porque el área de sesión cambia de elemento al cerrar la sesión. Revisando el código de Syncfusion se vio que el AppBar no mueve nada.
+- **Diagnóstico:** se inspeccionó el DOM y el elemento `.e-toast` estaba como hijo de `<body>`.
+- **Solución:** el Toast queda dentro de un `<div className="contenedor-avisos">` fijo. El que queda como hermano para React es ese `div`, que no se mueve.
+
+Es la misma familia de problema que el del diálogo en la etapa 4 (Syncfusion moviendo elementos que maneja React). Por qué no había aparecido antes: hasta ahora ningún aviso se mostraba antes de que terminara de cargar la primera pantalla.
+
+#### Cómo se probó
+
+En el navegador, contra la API con los usuarios del seed:
+- **Sin sesión:** aparece "Ingresar"; lleva a `/login?volver=/torneos`.
+- **Validaciones:** enviar vacío muestra los dos errores de Zod; un email incompleto, el de formato.
+- **Contraseña incorrecta:** "Credenciales inválidas." dentro del formulario, sin guardar ninguna sesión.
+- **Login como Administrador:** vuelve a `/torneos` y saluda; la barra muestra el email y "Administrador"; crear y borrar un torneo funciona (antes daba 401, porque no se enviaba el token).
+- **Recargar la página:** la sesión sigue y se revalida con `GET /auth/yo`. En desarrollo se ven dos pedidos porque StrictMode monta los efectos dos veces; el primero se cancela.
+- **Token alterado y recarga:** `GET /auth/yo` responde 401, la sesión se cierra, se borra de `sessionStorage` y aparece el aviso. Así se encontró y se verificó la corrección del Toast.
+- **Login como Jugador** sin `?volver=`: va al inicio.
+- **Celular (375 px):** solo los íconos. "Salir" cierra la sesión, avisa "Cerraste la sesión." y vuelve a aparecer el ícono de ingresar.
+
+> **Hasta S-5:** las pantallas todavía no se adaptan al rol. Un Jugador o un Asistente ve los botones de crear, modificar y borrar, y al usarlos recibe el 403 del backend ("No tenés permiso para realizar esta acción.").
 
 ### S-5 — Permisos en las pantallas
 

@@ -1,5 +1,6 @@
 import { entorno } from '../config/entorno';
 import { ErrorApi } from './error-api';
+import { sesionGuardada } from './sesion-guardada';
 
 type Metodo = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
@@ -7,6 +8,9 @@ type Metodo = 'GET' | 'POST' | 'PATCH' | 'DELETE';
  * Hace un pedido a la API y devuelve el cuerpo de la respuesta ya convertido desde JSON.
  * Si la API responde con error, lanza un ErrorApi con el mensaje y los detalles del backend.
  * Equivale a un servicio base con HttpClient en Blazor.
+ *
+ * Si hay sesión, envía el token en "Authorization: Bearer <token>" (como un DelegatingHandler
+ * que agrega el encabezado a cada pedido de HttpClient).
  */
 async function pedir<T>(
   metodo: Metodo,
@@ -14,12 +18,16 @@ async function pedir<T>(
   cuerpo?: unknown,
   signal?: AbortSignal,
 ): Promise<T> {
+  const token = sesionGuardada.obtener()?.token;
+  const encabezados: Record<string, string> = {};
+  if (cuerpo !== undefined) encabezados['Content-Type'] = 'application/json';
+  if (token) encabezados.Authorization = `Bearer ${token}`;
+
   let respuesta: Response;
   try {
     respuesta = await fetch(`${entorno.apiUrl}${ruta}`, {
       method: metodo,
-      headers:
-        cuerpo !== undefined ? { 'Content-Type': 'application/json' } : {},
+      headers: encabezados,
       body: cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined,
       signal,
     });
@@ -43,6 +51,12 @@ async function pedir<T>(
   const datos: unknown = texto ? JSON.parse(texto) : undefined;
 
   if (!respuesta.ok) {
+    // 401 con un token enviado: la sesión venció o ya no es válida. Se cierra la sesión, y la
+    // aplicación lo avisa (ver ProveedorSesion). Un 401 sin token (por ejemplo, credenciales
+    // incorrectas en el login) no cierra nada.
+    if (respuesta.status === 401 && token) {
+      sesionGuardada.borrar('vencida');
+    }
     throw ErrorApi.desdeRespuesta(respuesta.status, datos);
   }
   return datos as T;

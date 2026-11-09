@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   useController,
   type Control,
@@ -15,7 +16,12 @@ interface Props<T extends FieldValues> {
   etiqueta: string;
   /** Texto de ayuda debajo del campo, cuando no hay error. */
   ayuda?: string;
-  tipo?: 'text' | 'url';
+  tipo?: 'text' | 'url' | 'email' | 'password';
+  /**
+   * Valor del atributo autocomplete: le dice al navegador y a los gestores de contraseñas qué
+   * dato es (por ejemplo, "username" o "current-password" en el login).
+   */
+  autocompletar?: string;
 }
 
 /**
@@ -31,11 +37,23 @@ export function CampoTexto<T extends FieldValues>({
   etiqueta,
   ayuda,
   tipo = 'text',
+  autocompletar,
 }: Props<T>) {
   // useController conecta un componente externo (el de Syncfusion) con el formulario:
   // field tiene el valor y los avisos de cambio; fieldState, el error.
   const { field, fieldState } = useController({ control, name: nombre });
   const idMensaje = `${field.name}-mensaje`;
+  const conError = fieldState.error !== undefined;
+
+  // Mismo objeto entre dibujos, para que Syncfusion no lo tome como un cambio de configuración.
+  const atributos = useMemo(
+    () => ({
+      'aria-invalid': conError ? 'true' : 'false',
+      'aria-describedby': idMensaje,
+      ...(autocompletar && { autocomplete: autocompletar }),
+    }),
+    [conError, idMensaje, autocompletar],
+  );
 
   return (
     <div className="campo">
@@ -48,11 +66,8 @@ export function CampoTexto<T extends FieldValues>({
         // "input" se dispara con cada tecla; "change" recién al salir del campo.
         input={(e) => field.onChange(e.value)}
         blur={field.onBlur}
-        cssClass={fieldState.error ? 'e-error' : ''}
-        htmlAttributes={{
-          'aria-invalid': fieldState.error ? 'true' : 'false',
-          'aria-describedby': idMensaje,
-        }}
+        cssClass={conError ? 'e-error' : ''}
+        htmlAttributes={atributos}
       />
       <MensajeCampo
         id={idMensaje}

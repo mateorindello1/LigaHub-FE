@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Outlet, useNavigation } from 'react-router';
 import { AppBarComponent } from '@syncfusion/ej2-react-navigations';
 import { ButtonComponent } from '@syncfusion/ej2-react-buttons';
+import { MenuSesion } from '../sesion/MenuSesion';
 import { MenuNavegacion, type ItemMenu } from './MenuNavegacion';
 import './Layout.css';
 
@@ -40,6 +41,9 @@ export function Layout() {
         <Link to="/" className="layout__marca">
           LigaHub
         </Link>
+        {/* El espaciador de Syncfusion empuja lo que sigue al extremo derecho de la barra. */}
+        <div className="e-appbar-spacer" />
+        <MenuSesion />
       </AppBarComponent>
 
       <aside className="layout__menu">
