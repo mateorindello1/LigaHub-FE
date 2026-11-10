@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { ButtonComponent } from '@syncfusion/ej2-react-buttons';
 import { NOMBRES_ROL } from '../../modelos/sesion';
 import { useNotificaciones } from '../notificaciones/contexto-notificaciones';
@@ -12,6 +12,7 @@ export function MenuSesion() {
   const { usuario, cerrarSesion } = useSesion();
   const notificaciones = useNotificaciones();
   const ubicacion = useLocation();
+  const navegar = useNavigate();
 
   if (!usuario) {
     // En la pantalla de login no hace falta el acceso.
@@ -44,6 +45,8 @@ export function MenuSesion() {
         onClick={() => {
           cerrarSesion();
           notificaciones.exito('Cerraste la sesión.');
+          // Al inicio: si estaba en una pantalla de administración, sin sesión lo llevaría al login.
+          navegar('/');
         }}
       >
         <span className="menu-sesion__texto">Salir</span>

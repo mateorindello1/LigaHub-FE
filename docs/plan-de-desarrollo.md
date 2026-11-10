@@ -753,7 +753,7 @@ La verificación completa, requisito por requisito y con enlaces al archivo y la
 
 ## Etapa 10 — Seguridad: login y permisos
 
-**Estado:** En curso (S-1 a S-4 hechas)
+**Estado:** En curso (S-1 a S-5 hechas; falta S-6)
 
 Login y permisos por rol. La cátedra los pide para la aprobación directa, pero se hacen como etapa propia y **antes** del resto de la aprobación directa: así los endpoints y pantallas nuevos (jugadores, canchas, carga de resultados) nacen protegidos y no hay que volver sobre ellos. Los decoradores `@Publico()` y `@Roles(...)` ya están en todos los endpoints desde la etapa 4; esta etapa los activa.
 
@@ -765,7 +765,7 @@ El diseño (mecanismo, roles, permisos y medidas) está decidido en [seguridad.m
 | S-2 | Login con JWT, límite de intentos y datos del usuario actual | Sí | No | Hecha |
 | S-3 | Protección de la API: guard global, guard de roles, mensajes 401 y 403, Swagger con token | Sí | No | Hecha |
 | S-4 | Login, sesión y envío del token desde el cliente de API | No | Sí | Hecha |
-| S-5 | Pantallas, menú y acciones según el rol; sesión vencida (401) y sin permiso (403) | No | Sí | Pendiente |
+| S-5 | Pantallas, menú y acciones según el rol; sesión vencida (401) y sin permiso (403) | No | Sí | Hecha |
 | S-6 | Gestión de usuarios y roles por el administrador | Sí | Sí | Pendiente |
 
 ### S-4 — Login y sesión
@@ -840,9 +840,54 @@ En el navegador, contra la API con los usuarios del seed:
 
 ### S-5 — Permisos en las pantallas
 
-- Rutas protegidas por rol: sin sesión, se redirige al login y después se vuelve a la pantalla pedida.
-- Menú y acciones según el rol: el público ve torneos, posiciones y fixture; los botones de crear, modificar, borrar y generar el fixture solo los ve el Administrador. Equivale a `<AuthorizeView Roles="...">`.
-- **401** (sesión vencida): se cierra la sesión y se vuelve al login con un aviso. **403** (sin permiso): mensaje claro.
+**Estado:** Hecha (2026-11-09)
+
+#### Qué ve cada uno
+
+Las consultas de la API son públicas y solo la escritura es del Administrador. Las pantallas siguen la misma regla:
+
+| Pantalla | Sin sesión, Jugador o Asistente | Administrador |
+|:--|:--|:--|
+| Inicio, Posiciones y detalle del equipo | Sí | Sí |
+| Fixture | Sí, sin "Generar" ni "Deshacer" ni las indicaciones para generarlo | Sí, con los botones |
+| Inscripciones | Sí, solo consulta: sin "Inscribir equipo" ni columna de acciones | Sí, con alta, cambio y baja |
+| Torneos y Equipos (ABM) | No figuran en el menú. Sin sesión, la dirección lleva al login y vuelve; con otro rol, "Sin permiso" | Sí |
+
+Además, al tocar "Salir" se vuelve al inicio. Si se estaba en una pantalla de administración, sin sesión llevaría al login, que es raro justo después de salir.
+
+#### Archivos
+
+| Archivo | Qué es |
+|:--|:--|
+| `src/componentes/sesion/RutaProtegida.tsx` | Protege un grupo de rutas: sin sesión lleva al login con `?volver=`; sin el rol muestra "Sin permiso" |
+| `src/componentes/sesion/SoloConRol.tsx` | Muestra su contenido solo si el usuario tiene alguno de los roles |
+| `src/paginas/SinPermisoPagina.tsx` | "Tu usuario no tiene permiso para ver esta pantalla." |
+| `src/rutas.tsx` | Torneos y Equipos dentro de una ruta sin dirección con `<RutaProtegida roles={[Rol.Administrador]} />` |
+| `src/componentes/layout/Layout.tsx`, `MenuNavegacion.tsx` | Cada opción del menú puede tener `roles`; el menú muestra solo las que corresponden |
+| `src/paginas/InscripcionesPagina.tsx` | "Inscribir equipo" con `SoloConRol`; la columna de acciones solo si es Administrador y las inscripciones están abiertas |
+| `src/paginas/FixturePagina.tsx` | "Generar" y "Deshacer" con `SoloConRol`; las indicaciones para generar, solo para el Administrador |
+| `src/componentes/sesion/MenuSesion.tsx` | "Salir" vuelve al inicio |
+
+#### Conceptos
+
+- **`RutaProtegida` como ruta sin dirección:** se usa como `element` de una ruta sin `path` que agrupa las pantallas protegidas, y dibuja las hijas en su `<Outlet />` solo si corresponde. Un solo lugar protege todas las pantallas de administración. Equivale a `[Authorize(Roles = "Administrador")]` en las páginas de Blazor, o a `<AuthorizeRouteView>`.
+- **`SoloConRol`:** el `<AuthorizeView Roles="...">` de Blazor. Para botones y acciones dentro de pantallas que ve cualquiera.
+- **La seguridad real está en la API:** ocultar un botón o una pantalla es para la experiencia de uso; quien sepa la dirección o use la API directamente igual recibe 401 o 403 del backend (S-3). El frontend nunca es la barrera de seguridad, porque su código está en el navegador del usuario.
+- **Sesión que vence en una pantalla protegida:** el contexto de sesión pasa a `null`, `RutaProtegida` se vuelve a dibujar y lleva al login, con `?volver=` para regresar después.
+- **401 y 403 en la interfaz:** el 401 (sesión vencida) cierra la sesión y avisa "Tu sesión venció" (S-4), y las pantallas protegidas llevan al login. El 403 ya no debería aparecer, porque las acciones sin permiso no se muestran. Si apareciera (por ejemplo, si le quitaron el rol a alguien con la sesión abierta), se ve el mensaje del backend: "No tenés permiso para realizar esta acción.".
+- **`key` de la grilla de Inscripciones:** incluye si se puede editar. Al iniciar o cerrar sesión, la grilla se crea de nuevo con o sin la columna de acciones (Syncfusion no siempre refleja que se agregue o quite una columna en una grilla ya creada).
+
+#### Cómo se probó
+
+En el navegador, contra la API con los usuarios del seed:
+- **Sin sesión:**
+  - El menú muestra Inicio, Inscripciones, Posiciones y Fixture.
+  - `/torneos` lleva a `/login?volver=/torneos`.
+  - Fixture de Clausura: "Este torneo todavía no tiene fixture.", sin botones ni indicaciones.
+- **Jugador** (ingresando desde ese login): vuelve a `/torneos` y ve "Sin permiso"; el menú sigue sin Torneos ni Equipos; Inscripciones de Clausura solo con la columna Equipo y sin botones; Fixture de Apertura con las 5 fechas y sin botones.
+- **"Salir"** desde Fixture vuelve al inicio.
+- **Administrador:** el menú completo; Inscripciones con "Inscribir equipo" y la columna de acciones; Fixture de Apertura con "Deshacer fixture".
+- **Sesión inválida en `/torneos`** (token alterado y recarga): lleva a `/login?volver=/torneos` con el aviso "Tu sesión venció", sin errores en la consola.
 
 ### S-6 — Gestión de usuarios (frontend)
 

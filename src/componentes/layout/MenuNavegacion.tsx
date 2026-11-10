@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router';
+import type { Rol } from '../../modelos/sesion';
 
 /** Una opción del menú. */
 export interface ItemMenu {
@@ -6,6 +7,8 @@ export interface ItemMenu {
   texto: string;
   /** Clase del ícono de Syncfusion (por ejemplo, "e-home"). */
   icono: string;
+  /** Roles que ven la opción (alcanza con uno). Sin roles, la ve cualquiera. */
+  roles?: Rol[];
 }
 
 interface Props {

@@ -17,6 +17,8 @@ import { MensajeError } from '../componentes/comunes/MensajeError';
 import { EscudoEquipo } from '../componentes/equipos/EscudoEquipo';
 import { FormularioInscripcion } from '../componentes/inscripciones/FormularioInscripcion';
 import { useNotificaciones } from '../componentes/notificaciones/contexto-notificaciones';
+import { useSesion } from '../componentes/sesion/contexto-sesion';
+import { SoloConRol } from '../componentes/sesion/SoloConRol';
 import { SelectorTorneo } from '../componentes/torneos/SelectorTorneo';
 import { IDIOMA } from '../config/textos-syncfusion';
 import { useEquipos } from '../hooks/equipos.hooks';
@@ -30,6 +32,7 @@ import { useTorneoSeleccionado } from '../hooks/torneo-seleccionado.hook';
 import { useTorneos } from '../hooks/torneos.hooks';
 import { EstadoTorneo } from '../modelos/estados';
 import type { InscripcionEquipo } from '../modelos/inscripcion-equipo';
+import { Rol } from '../modelos/sesion';
 import type { DatosFormularioInscripcion } from '../validaciones/inscripcion-equipo.validacion';
 
 /** Formulario abierto: sin inscripción es un alta; con inscripción, un cambio de equipo. */
@@ -64,8 +67,11 @@ export function InscripcionesPagina() {
   const [edicion, setEdicion] = useState<Edicion | null>(null);
   const [aBorrar, setABorrar] = useState<InscripcionEquipo | null>(null);
 
-  // Las inscripciones solo se modifican con el torneo en estado Inscripción (el backend también lo controla).
+  // Las inscripciones solo se modifican con el torneo en estado Inscripción y solo las modifica
+  // el Administrador (el backend controla las dos cosas). Los demás ven la pantalla de consulta.
   const abiertas = torneo?.estadoTorneo === EstadoTorneo.Inscripcion;
+  const esAdministrador = useSesion().tieneRol(Rol.Administrador);
+  const editable = abiertas && esAdministrador;
   const inscripciones = consultaInscripciones.data;
 
   /**
@@ -149,14 +155,16 @@ export function InscripcionesPagina() {
         titulo="Inscripciones"
         descripcion="Equipos inscriptos en cada torneo."
         acciones={
-          <ButtonComponent
-            isPrimary
-            iconCss="e-icons e-plus"
-            disabled={!abiertas}
-            onClick={() => setEdicion({})}
-          >
-            Inscribir equipo
-          </ButtonComponent>
+          <SoloConRol roles={[Rol.Administrador]}>
+            <ButtonComponent
+              isPrimary
+              iconCss="e-icons e-plus"
+              disabled={!abiertas}
+              onClick={() => setEdicion({})}
+            >
+              Inscribir equipo
+            </ButtonComponent>
+          </SoloConRol>
         }
       />
 
@@ -168,7 +176,10 @@ export function InscripcionesPagina() {
         />
       )}
       {consultaTorneos.data?.length === 0 && (
-        <p>Todavía no hay torneos. Creá uno en la pantalla Torneos.</p>
+        <p>
+          Todavía no hay torneos.
+          {esAdministrador && ' Creá uno en la pantalla Torneos.'}
+        </p>
       )}
 
       {consultaTorneos.data && torneo && (
@@ -205,9 +216,9 @@ export function InscripcionesPagina() {
                   : `${inscripciones.length} equipos inscriptos`}
               </p>
               <GridComponent
-                // key: al cambiar de torneo la grilla se crea de nuevo, con las columnas que
-                // correspondan (sin acciones si las inscripciones están cerradas).
-                key={`${torneo.id}-${abiertas}`}
+                // key: al cambiar de torneo o de sesión la grilla se crea de nuevo, con las columnas
+                // que correspondan (sin acciones si no se puede editar).
+                key={`${torneo.id}-${editable}`}
                 dataSource={inscripciones}
                 locale={IDIOMA}
                 allowSorting
@@ -221,7 +232,7 @@ export function InscripcionesPagina() {
                     headerText="Equipo"
                     template={plantillaEquipo}
                   />
-                  {abiertas && (
+                  {editable && (
                     <ColumnDirective
                       headerText="Acciones"
                       width={110}

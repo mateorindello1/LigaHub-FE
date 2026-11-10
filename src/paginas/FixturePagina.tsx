@@ -9,6 +9,8 @@ import { MensajeError } from '../componentes/comunes/MensajeError';
 import { FormularioGenerarFixture } from '../componentes/fixture/FormularioGenerarFixture';
 import { TarjetaFecha } from '../componentes/fixture/TarjetaFecha';
 import { useNotificaciones } from '../componentes/notificaciones/contexto-notificaciones';
+import { useSesion } from '../componentes/sesion/contexto-sesion';
+import { SoloConRol } from '../componentes/sesion/SoloConRol';
 import { SelectorTorneo } from '../componentes/torneos/SelectorTorneo';
 import {
   useDeshacerFixture,
@@ -19,6 +21,7 @@ import { useInscripciones } from '../hooks/inscripciones-equipo.hooks';
 import { useTorneoSeleccionado } from '../hooks/torneo-seleccionado.hook';
 import { useTorneos } from '../hooks/torneos.hooks';
 import { EstadoTorneo } from '../modelos/estados';
+import { Rol } from '../modelos/sesion';
 import type { DatosFormularioGenerarFixture } from '../validaciones/generar-fixture.validacion';
 
 /**
@@ -50,6 +53,8 @@ export function FixturePagina() {
   const enInscripcion = torneo?.estadoTorneo === EstadoTorneo.Inscripcion;
   const cantidadEquipos = inscripciones?.length ?? 0;
   const puedeGenerar = enInscripcion && fechas !== undefined && !tieneFixture;
+  // Generar y deshacer el fixture es solo del Administrador; los demás lo consultan.
+  const esAdministrador = useSesion().tieneRol(Rol.Administrador);
   // #endregion
 
   // #region Acciones
@@ -89,7 +94,7 @@ export function FixturePagina() {
         titulo="Fixture"
         descripcion="Fechas y partidos del torneo, todos contra todos."
         acciones={
-          <>
+          <SoloConRol roles={[Rol.Administrador]}>
             {puedeGenerar && (
               <ButtonComponent
                 isPrimary
@@ -109,7 +114,7 @@ export function FixturePagina() {
                 Deshacer fixture
               </ButtonComponent>
             )}
-          </>
+          </SoloConRol>
         }
       />
 
@@ -121,7 +126,10 @@ export function FixturePagina() {
         />
       )}
       {consultaTorneos.data?.length === 0 && (
-        <p>Todavía no hay torneos. Creá uno en la pantalla Torneos.</p>
+        <p>
+          Todavía no hay torneos.
+          {esAdministrador && ' Creá uno en la pantalla Torneos.'}
+        </p>
       )}
 
       {consultaTorneos.data && torneo && (
@@ -143,14 +151,15 @@ export function FixturePagina() {
           {fechas && !tieneFixture && (
             <div className="aviso aviso--columna" role="status">
               <p>Este torneo todavía no tiene fixture.</p>
-              {enInscripcion && cantidadEquipos >= 2 && (
+              {/* Las indicaciones para generarlo son solo para quien puede hacerlo. */}
+              {esAdministrador && enInscripcion && cantidadEquipos >= 2 && (
                 <p>
                   Hay {cantidadEquipos} equipos inscriptos. Con "Generar
                   fixture" se arman todas las fechas y se cierran las
                   inscripciones.
                 </p>
               )}
-              {enInscripcion && cantidadEquipos < 2 && (
+              {esAdministrador && enInscripcion && cantidadEquipos < 2 && (
                 <p>
                   Se necesitan al menos 2 equipos inscriptos (hay{' '}
                   {cantidadEquipos}).{' '}

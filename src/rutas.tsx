@@ -1,6 +1,8 @@
 import { createBrowserRouter } from 'react-router';
 import { Cargando } from './componentes/comunes/Cargando';
 import { Layout } from './componentes/layout/Layout';
+import { RutaProtegida } from './componentes/sesion/RutaProtegida';
+import { Rol } from './modelos/sesion';
 import { ErrorRutaPagina } from './paginas/ErrorRutaPagina';
 import { InicioPagina } from './paginas/InicioPagina';
 import { NoEncontradaPagina } from './paginas/NoEncontradaPagina';
@@ -27,18 +29,25 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <InicioPagina /> },
           {
-            path: 'torneos',
-            lazy: async () => ({
-              Component: (await import('./paginas/TorneosPagina'))
-                .TorneosPagina,
-            }),
-          },
-          {
-            path: 'equipos',
-            lazy: async () => ({
-              Component: (await import('./paginas/EquiposPagina'))
-                .EquiposPagina,
-            }),
+            // Pantallas de administración: solo el Administrador. Sin sesión llevan al login;
+            // con otro rol muestran "sin permiso".
+            element: <RutaProtegida roles={[Rol.Administrador]} />,
+            children: [
+              {
+                path: 'torneos',
+                lazy: async () => ({
+                  Component: (await import('./paginas/TorneosPagina'))
+                    .TorneosPagina,
+                }),
+              },
+              {
+                path: 'equipos',
+                lazy: async () => ({
+                  Component: (await import('./paginas/EquiposPagina'))
+                    .EquiposPagina,
+                }),
+              },
+            ],
           },
           {
             path: 'inscripciones',

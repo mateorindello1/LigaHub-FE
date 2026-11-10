@@ -2,14 +2,26 @@ import { useState } from 'react';
 import { Link, Outlet, useNavigation } from 'react-router';
 import { AppBarComponent } from '@syncfusion/ej2-react-navigations';
 import { ButtonComponent } from '@syncfusion/ej2-react-buttons';
+import { Rol } from '../../modelos/sesion';
+import { useSesion } from '../sesion/contexto-sesion';
 import { MenuSesion } from '../sesion/MenuSesion';
 import { MenuNavegacion, type ItemMenu } from './MenuNavegacion';
 import './Layout.css';
 
 const OPCIONES_MENU: ItemMenu[] = [
   { ruta: '/', texto: 'Inicio', icono: 'e-home' },
-  { ruta: '/torneos', texto: 'Torneos', icono: 'e-grid-view' },
-  { ruta: '/equipos', texto: 'Equipos', icono: 'e-people' },
+  {
+    ruta: '/torneos',
+    texto: 'Torneos',
+    icono: 'e-grid-view',
+    roles: [Rol.Administrador],
+  },
+  {
+    ruta: '/equipos',
+    texto: 'Equipos',
+    icono: 'e-people',
+    roles: [Rol.Administrador],
+  },
   { ruta: '/inscripciones', texto: 'Inscripciones', icono: 'e-checklist' },
   { ruta: '/posiciones', texto: 'Posiciones', icono: 'e-chart' },
   { ruta: '/fixture', texto: 'Fixture', icono: 'e-month' },
@@ -27,6 +39,11 @@ export function Layout() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   // "loading" mientras se descarga el código de la pantalla a la que se navega (carga diferida).
   const cargandoPantalla = useNavigation().state === 'loading';
+  // Opciones del menú según el rol: las de administración solo las ve el Administrador.
+  const { tieneRol } = useSesion();
+  const opcionesVisibles = OPCIONES_MENU.filter(
+    (opcion) => !opcion.roles || tieneRol(...opcion.roles),
+  );
 
   return (
     <div className={menuAbierto ? 'layout layout--menu-abierto' : 'layout'}>
@@ -48,7 +65,7 @@ export function Layout() {
 
       <aside className="layout__menu">
         <MenuNavegacion
-          items={OPCIONES_MENU}
+          items={opcionesVisibles}
           onNavegar={() => setMenuAbierto(false)}
         />
       </aside>
