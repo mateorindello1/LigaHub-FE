@@ -36,18 +36,3 @@ export type ModificarUsuario = Partial<Omit<CrearUsuario, 'contrasenia'>>;
 export interface CambiarContrasenia {
   contrasenia: string;
 }
-
-/** Jugador para elegir en una lista, tal como lo devuelve GET /jugadores. */
-export interface JugadorResumen {
-  id: number;
-  dni: string;
-  nombres: string;
-  apellidos: string;
-  /** Usuario asociado, o null si no tiene. */
-  usuarioId: number | null;
-}
-
-/** Nombre para mostrar de un jugador: "Apellidos, Nombres". */
-export function nombreJugador(jugador: JugadorDeUsuario): string {
-  return `${jugador.apellidos}, ${jugador.nombres}`;
-}

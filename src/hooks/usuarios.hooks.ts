@@ -5,7 +5,6 @@ import type {
   CrearUsuario,
   ModificarUsuario,
 } from '../modelos/usuario';
-import { jugadoresServicio } from '../servicios/jugadores.servicio';
 import { usuariosServicio } from '../servicios/usuarios.servicio';
 
 /*
@@ -19,14 +18,6 @@ export function useUsuarios() {
   return useQuery({
     queryKey: clavesConsulta.usuarios,
     queryFn: ({ signal }) => usuariosServicio.obtenerTodos(signal),
-  });
-}
-
-/** Lista de jugadores, para asociar uno a un usuario con rol Jugador. */
-export function useJugadores() {
-  return useQuery({
-    queryKey: clavesConsulta.jugadores,
-    queryFn: ({ signal }) => jugadoresServicio.obtenerTodos(signal),
   });
 }
 

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import { ButtonComponent } from '@syncfusion/ej2-react-buttons';
 import {
   ColumnDirective,
@@ -42,7 +43,8 @@ interface Edicion {
 
 /**
  * CRUD dependiente: equipos inscriptos en un torneo. Primero se elige el torneo (filtro) y
- * después se inscriben, cambian o dan de baja equipos de ese torneo.
+ * después se inscriben, cambian o dan de baja equipos de ese torneo. Cada equipo lleva a su
+ * plantel (PlantelPagina), donde se inscriben los jugadores.
  */
 export function InscripcionesPagina() {
   // #region Estado
@@ -125,15 +127,20 @@ export function InscripcionesPagina() {
   // #endregion
 
   // #region Plantillas de columnas
+  // El nombre del equipo lleva a su plantel (los jugadores inscriptos).
   const plantillaEquipo = useCallback(
     (inscripcion: InscripcionEquipo) => (
-      <div className="celda-equipo">
+      <Link
+        className="enlace-equipo celda-equipo"
+        to={`/inscripciones/${inscripcion.torneoId}/${inscripcion.id}`}
+        title={`Ver el plantel de ${inscripcion.equipo.nombre}`}
+      >
         <EscudoEquipo
           nombre={inscripcion.equipo.nombre}
           escudoURL={inscripcion.equipo.escudoURL}
         />
         <span>{inscripcion.equipo.nombre}</span>
-      </div>
+      </Link>
     ),
     [],
   );
@@ -153,7 +160,7 @@ export function InscripcionesPagina() {
     <>
       <EncabezadoPagina
         titulo="Inscripciones"
-        descripcion="Equipos inscriptos en cada torneo."
+        descripcion="Equipos inscriptos en cada torneo. Elegí un equipo para ver su plantel."
         acciones={
           <SoloConRol roles={[Rol.Administrador]}>
             <ButtonComponent
@@ -193,8 +200,9 @@ export function InscripcionesPagina() {
           {!abiertas && (
             <p className="aviso" role="status">
               <span className="e-icons e-lock" aria-hidden="true" />
-              Las inscripciones de este torneo están cerradas: solo se pueden
-              consultar.
+              Las inscripciones de equipos de este torneo están cerradas.
+              {torneo.estadoTorneo === EstadoTorneo.EnCurso &&
+                ' Los planteles se pueden modificar hasta que termine el torneo.'}
             </p>
           )}
 

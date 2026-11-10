@@ -48,6 +48,13 @@ export const router = createBrowserRouter([
                 }),
               },
               {
+                path: 'jugadores',
+                lazy: async () => ({
+                  Component: (await import('./paginas/JugadoresPagina'))
+                    .JugadoresPagina,
+                }),
+              },
+              {
                 path: 'usuarios',
                 lazy: async () => ({
                   Component: (await import('./paginas/UsuariosPagina'))
@@ -57,10 +64,30 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            // Datos propios del jugador: solo el rol Jugador (permiso por pertenencia).
+            element: <RutaProtegida roles={[Rol.Jugador]} />,
+            children: [
+              {
+                path: 'mis-datos',
+                lazy: async () => ({
+                  Component: (await import('./paginas/MisDatosPagina'))
+                    .MisDatosPagina,
+                }),
+              },
+            ],
+          },
+          {
             path: 'inscripciones',
             lazy: async () => ({
               Component: (await import('./paginas/InscripcionesPagina'))
                 .InscripcionesPagina,
+            }),
+          },
+          {
+            path: 'inscripciones/:torneoId/:inscripcionId',
+            lazy: async () => ({
+              Component: (await import('./paginas/PlantelPagina'))
+                .PlantelPagina,
             }),
           },
           {

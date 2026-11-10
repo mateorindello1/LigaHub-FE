@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Rol } from '../../modelos/sesion';
-import type { JugadorResumen, Usuario } from '../../modelos/usuario';
+import type { Jugador } from '../../modelos/jugador';
+import type { Usuario } from '../../modelos/usuario';
 import {
   crearEsquemaUsuario,
   LARGO_MINIMO_CONTRASENIA,
@@ -25,7 +26,7 @@ interface Props {
   /** Usuario a modificar. Si no se pasa, el formulario es de alta. */
   usuario?: Usuario;
   /** Todos los jugadores; la lista muestra los que no tienen usuario y el del propio usuario. */
-  jugadores: JugadorResumen[];
+  jugadores: Jugador[];
   /** Guarda los datos. Si la promesa falla, el error se muestra en el formulario. */
   onGuardar: (datos: DatosFormularioUsuario) => Promise<void>;
   onCancelar: () => void;

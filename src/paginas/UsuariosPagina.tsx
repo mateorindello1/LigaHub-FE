@@ -19,16 +19,17 @@ import { BadgesRoles } from '../componentes/usuarios/BadgesRoles';
 import { FormularioContrasenia } from '../componentes/usuarios/FormularioContrasenia';
 import { FormularioUsuario } from '../componentes/usuarios/FormularioUsuario';
 import { IDIOMA } from '../config/textos-syncfusion';
+import { useJugadores } from '../hooks/jugadores.hooks';
 import {
   useBorrarUsuario,
   useCambiarContrasenia,
   useCrearUsuario,
-  useJugadores,
   useModificarUsuario,
   useUsuarios,
 } from '../hooks/usuarios.hooks';
 import { Rol, type Rol as TipoRol } from '../modelos/sesion';
-import { nombreJugador, type Usuario } from '../modelos/usuario';
+import { nombreJugador } from '../modelos/jugador';
+import type { Usuario } from '../modelos/usuario';
 import type {
   DatosFormularioContrasenia,
   DatosFormularioUsuario,

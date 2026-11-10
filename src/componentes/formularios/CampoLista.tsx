@@ -20,6 +20,11 @@ interface Props<T extends FieldValues, O extends object> {
   /** Propiedad de cada opción que se guarda en el formulario (por ejemplo, "id"). */
   campoValor: keyof O & string;
   ayuda?: string;
+  /**
+   * Agrega un cuadro de búsqueda en la lista desplegada, para listas largas (por ejemplo, los
+   * jugadores). Busca el texto en cualquier parte de la opción, sin distinguir mayúsculas ni tildes.
+   */
+  filtrable?: boolean;
 }
 
 /**
@@ -35,6 +40,7 @@ export function CampoLista<T extends FieldValues, O extends object>({
   campoTexto,
   campoValor,
   ayuda,
+  filtrable = false,
 }: Props<T, O>) {
   const { field, fieldState } = useController({ control, name: nombre });
   const idMensaje = `${field.name}-mensaje`;
@@ -70,6 +76,10 @@ export function CampoLista<T extends FieldValues, O extends object>({
         blur={field.onBlur}
         cssClass={conError ? 'e-error' : ''}
         htmlAttributes={atributos}
+        allowFiltering={filtrable}
+        filterType="Contains"
+        ignoreAccent
+        filterBarPlaceholder="Buscar…"
       />
       <MensajeCampo
         id={idMensaje}

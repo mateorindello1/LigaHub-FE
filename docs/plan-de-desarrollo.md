@@ -960,7 +960,7 @@ En el navegador, con el Administrador del seed, contra la API en Azure:
 
 ## Etapa 11 — Aprobación directa
 
-**Estado:** En curso (AD-1 hecha, en el backend)
+**Estado:** En curso (AD-1, en el backend, y AD-2 hechas)
 
 Subetapas con la misma numeración en los planes del backend y del frontend. Requiere la etapa de seguridad: los endpoints y pantallas nuevos se protegen por rol desde el principio. El orden tiene un motivo:
 - **AD-1 se adelantó:** es un requisito de regularidad.
@@ -970,15 +970,116 @@ Subetapas con la misma numeración en los planes del backend y del frontend. Req
 | Subetapa | Qué incluye | Backend | Frontend | Estado |
 |:-:|:--|:-:|:-:|:-:|
 | AD-1 | Base de datos en la nube (Azure SQL). **También es requisito de regularidad** | Sí | No | Hecha |
-| AD-2 | CRUD de Jugador e Inscripción de jugador | Sí | Sí | Pendiente |
+| AD-2 | CRUD de Jugador e Inscripción de jugador | Sí | Sí | Hecha |
 | AD-3 | CRUD de Predio y Cancha, y asignar cancha y horario a los partidos | Sí | Sí | Pendiente |
 | AD-4 | Caso de uso: cargar el resultado de un partido | Sí | Sí | Pendiente |
 | AD-5 | Tests que faltan | Sí | Sí | Pendiente |
 | AD-6 | Ambientes y deploy | Sí | Sí | Pendiente |
 
-### AD-2 y AD-3 — Pantallas de los CRUD nuevos
+### AD-2 — Jugadores, planteles y "Mis datos"
 
-- Jugadores, e Inscripción de jugadores dentro de la inscripción de cada equipo. El rol Jugador ve y modifica sus propios datos.
+**Estado:** Hecha (2026-11-10)
+
+#### Qué se ve
+
+**Jugadores** (`/jugadores`, solo el Administrador): ABM con grilla y ventanas modales, como Equipos.
+- **Buscador por nombre o DNI** arriba de la grilla. No distingue mayúsculas ni tildes: "gomez" encuentra "Gómez".
+- **Columnas:** jugador ("Apellidos, Nombres"), DNI (desde 768 px) y contacto, con email y teléfono (desde 992 px). En celular, el DNI pasa debajo del nombre.
+- **Formulario:** DNI, apellidos, nombres, email de contacto, teléfono y dirección, con los mismos mensajes que el backend.
+- **Errores del backend en el formulario:** DNI repetido. Al borrar, si el jugador está inscripto o tiene usuario, el aviso explica qué hay que hacer antes.
+
+**Plantel** (`/inscripciones/:torneoId/:inscripcionId`): el CRUD dependiente de Inscripción de jugador.
+- **Acceso:** en Inscripciones, el nombre de cada equipo es un enlace a su plantel, como en la tabla de posiciones.
+- **Encabezado:** escudo, "Plantel de X", torneo y su estado, y "Volver a las inscripciones".
+- **Grilla:** dorsal y jugador, con el badge "C" del capitán. Arriba, un resumen con la cantidad y el nombre del capitán.
+- **Quién lo ve:** es público. Solo el Administrador ve "Inscribir jugador" y las acciones de cada fila.
+- **Hasta cuándo se modifica:** mientras el torneo no esté finalizado. Si lo está, un aviso dice que solo se puede consultar.
+- **Formulario de alta:**
+  - Lista de jugadores con buscador, que muestra solo los que no están en otro equipo del torneo.
+  - Dorsal.
+  - Casilla "Capitán del equipo". Si ya hay capitán, al marcarla avisa "X deja de ser el capitán.".
+- **Formulario de modificación:** el jugador queda fijo; se cambian el dorsal y la capitanía.
+
+**Mis datos** (`/mis-datos`, solo el rol Jugador): el permiso por pertenencia del lado del frontend.
+- **Tarjeta con sus datos:** nombre, DNI, email, teléfono y dirección.
+- **"Modificar mis datos":** abre el formulario de jugador solo con los datos de contacto.
+- **Sus inscripciones:** equipo (con enlace al detalle), torneo con su estado, dorsal y badge "Capitán".
+
+**Menú:** "Jugadores" (ícono `e-user`) para el Administrador y "Mis datos" (`e-user`) para el Jugador. "Usuarios" pasó al ícono `e-lock`, porque ahora "Jugadores" usa el de persona.
+
+**Inscripciones con el torneo en curso:** el aviso ahora dice que las inscripciones de equipos están cerradas, pero que los planteles se pueden modificar hasta que termine el torneo.
+
+#### Archivos
+
+| Archivo | Qué es |
+|:--|:--|
+| `src/modelos/jugador.ts` | Nuevo: `Jugador`, `CrearJugador`, `ModificarJugador`, `DatosContactoJugador`, `JugadorConInscripciones` y `nombreJugador` (que estaba en `usuario.ts`) |
+| `src/modelos/inscripcion-jugador.ts` | Nuevo: `InscripcionJugador` y los datos para crearla y modificarla |
+| `src/modelos/usuario.ts` | Sin `JugadorResumen`: lo reemplaza `Jugador` |
+| `src/servicios/jugadores.servicio.ts` | CRUD completo y el filtro `disponiblesEnTorneo` |
+| `src/servicios/inscripciones-jugador.servicio.ts` | Nuevo: un método por endpoint del plantel |
+| `src/servicios/inscripciones-equipo.servicio.ts` | `obtenerPorId`, para el encabezado del plantel |
+| `src/hooks/jugadores.hooks.ts` | Nuevo: `useJugadores` (movido desde `usuarios.hooks.ts`), `useJugadoresDisponibles`, `useJugador` y las mutaciones |
+| `src/hooks/inscripciones-jugador.hooks.ts` | Nuevo: `useInscripcionEquipo`, `usePlantel` y las mutaciones |
+| `src/validaciones/jugador.validacion.ts`, `inscripcion-jugador.validacion.ts` | Nuevos: esquemas de Zod con los mensajes del backend |
+| `src/componentes/jugadores/FormularioJugador.tsx` | Nuevo: alta y modificación, con el modo `soloContacto` |
+| `src/componentes/inscripciones/FormularioInscripcionJugador.tsx` | Nuevo: jugador, dorsal y capitán |
+| `src/componentes/formularios/CampoLista.tsx` | Opción `filtrable`: cuadro de búsqueda en la lista desplegada |
+| `src/paginas/JugadoresPagina.tsx`, `PlantelPagina.tsx`, `MisDatosPagina.tsx` | Nuevas: las tres pantallas |
+| `src/paginas/InscripcionesPagina.tsx` | El equipo enlaza al plantel; texto del aviso con el torneo en curso |
+| `src/rutas.tsx` | `/jugadores` (Administrador), `/mis-datos` (Jugador) y `/inscripciones/:torneoId/:inscripcionId` (público) |
+| `src/componentes/layout/Layout.tsx` | Opciones "Jugadores" y "Mis datos"; ícono de "Usuarios" |
+| `src/api/claves-consulta.ts` | Claves `inscripcion`, `plantel`, `jugadoresDisponibles` y `jugador` |
+| `src/utilidades/formato.ts` | `normalizarParaBuscar`: minúsculas y sin tildes |
+| `src/index.css` | Celda de dos líneas, buscador, tarjeta de datos y lista de inscripciones |
+
+#### Conceptos
+
+- **Búsqueda sin tildes:** `texto.normalize('NFD')` separa cada letra de su tilde ("ó" pasa a "o" + tilde) y `replace(/\p{Diacritic}/gu, '')` quita las tildes. En .NET es `string.Normalize(NormalizationForm.FormD)` y filtrar los `UnicodeCategory.NonSpacingMark`. El filtro se calcula con `useMemo` a partir de la lista y del texto, como una propiedad calculada del ViewModel de listado.
+- **Lista desplegable con búsqueda:** `allowFiltering` del `DropDownListComponent` con `filterType="Contains"` e `ignoreAccent`. Es el `AllowFiltering` de `SfDropDownList`.
+- **Consulta que se activa a pedido:** `useJugadoresDisponibles(torneoId, habilitado)` usa `skipToken` mientras el formulario de alta está cerrado, así la lista se pide recién al abrirlo. Es como cargar los datos en el `OnInitializedAsync` del diálogo y no en el de la página.
+- **Un formulario, dos modos:** con `soloContacto`, `FormularioJugador` oculta el DNI y el nombre pero los mantiene con sus valores, para que el mismo esquema de Zod valide. La pantalla envía solo los campos de contacto, porque el backend rechaza el resto con un 403.
+- **Pertenencia en el frontend:** "Mis datos" pide siempre el jugador de la sesión (`usuario.jugadorId`). No hay forma de elegir otro desde la pantalla, y si alguien arma el pedido a mano, el backend responde 403.
+- **Invalidaciones:**
+  - Al inscribir o dar de baja se invalidan `['torneos', torneoId]` (plantel y detalle del equipo) y `['jugadores']`, porque cambian los disponibles y las inscripciones de cada jugador.
+  - Al modificar un jugador se invalidan además `['usuarios']` y `['torneos']`, porque el nombre aparece en la gestión de usuarios y en los planteles.
+
+#### Cómo se probó
+
+En el navegador, contra la API en Azure.
+
+**Como Administrador:**
+- **Jugadores:**
+  - La grilla muestra los 42 jugadores del seed.
+  - "gomez" encuentra los 3 "Gómez", y el botón de la cruz limpia la búsqueda.
+  - Enviado con DNI con puntos, teléfono con letras y el resto vacío, muestra los 6 mensajes.
+  - Con un DNI existente, muestra el 409 en el formulario.
+  - Con datos válidos, se crea el jugador (43).
+- **Plantel de Club Ribera (Clausura):**
+  - Inscripción del jugador nuevo como capitán, con el dorsal 10.
+  - En la segunda alta, la lista ya no incluye a ese jugador (42 opciones) y el buscador lo encuentra por nombre.
+  - El dorsal 10 repetido muestra el 409, y el aviso "Prueba, Navegador deja de ser el capitán.".
+  - Con el dorsal 5, la capitanía pasa al nuevo jugador.
+  - Al modificar el primero (dorsal 7 y capitán), la capitanía vuelve a él.
+- **Bajas:**
+  - Borrar al jugador inscripto muestra el 409 con la explicación.
+  - Después de dar de baja las dos inscripciones, se modifica el nombre y se borra el jugador.
+  - La base quedó como estaba.
+
+**Como Jugador:**
+- **Menú:** muestra "Mis datos" y no "Jugadores"; `/jugadores` muestra "Sin permiso".
+- **Mis datos:** muestra a Díaz, Matías con la inscripción en Los Halcones, dorsal 10 y "Capitán".
+- **Modificación:** cambiar el teléfono actualiza la tarjeta; después se volvió al valor original.
+- **Desde la consola, con el token de la sesión:** `GET /jugadores/:otro` y `GET /jugadores` responden 403.
+- **Plantel:** el de Los Halcones se ve sin botones de acción.
+
+**Otros chequeos:**
+- **Celular (375 px):** el plantel y "Mis datos" se acomodan en una columna. La grilla de Jugadores en celular no se probó, porque usa las mismas `hideAtMedia` que la de Usuarios, que sí se probó en S-6.
+- **Consola:** sin errores en los recorridos.
+- **Navegador automatizado:** el buscador de la lista desplegable no filtraba, porque Syncfusion filtra con el evento `keyup` y el navegador automatizado escribe sin generarlo. Con un `keyup` real filtra bien, así que no afecta a un usuario.
+
+### AD-3 — Pantallas de Predio, Cancha y programación de partidos
+
 - Predios y Canchas.
 - Asignar cancha y día y hora a los partidos desde el fixture.
 

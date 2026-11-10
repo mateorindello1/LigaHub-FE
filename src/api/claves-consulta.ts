@@ -9,6 +9,10 @@ export const clavesConsulta = {
   torneo: (id: number) => ['torneos', id] as const,
   inscripciones: (torneoId: number) =>
     ['torneos', torneoId, 'inscripciones'] as const,
+  inscripcion: (torneoId: number, inscripcionId: string) =>
+    ['torneos', torneoId, 'inscripciones', inscripcionId] as const,
+  plantel: (torneoId: number, inscripcionId: string) =>
+    ['torneos', torneoId, 'inscripciones', inscripcionId, 'jugadores'] as const,
   posiciones: (torneoId: number) =>
     ['torneos', torneoId, 'posiciones'] as const,
   detalleEquipo: (torneoId: number, equipoId: number) =>
@@ -18,4 +22,7 @@ export const clavesConsulta = {
   equipo: (id: number) => ['equipos', id] as const,
   usuarios: ['usuarios'] as const,
   jugadores: ['jugadores'] as const,
+  jugadoresDisponibles: (torneoId: number) =>
+    ['jugadores', 'disponibles', torneoId] as const,
+  jugador: (id: number) => ['jugadores', id] as const,
 };

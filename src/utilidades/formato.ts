@@ -24,3 +24,14 @@ export function formatearFechaHora(iso: string | null): string {
 export function formatearDiferencia(valor: number): string {
   return valor > 0 ? `+${valor}` : String(valor);
 }
+
+/**
+ * Texto preparado para buscar: en minúsculas y sin tildes, así "gomez" encuentra "Gómez".
+ * normalize('NFD') separa cada letra de su tilde, y la expresión quita las tildes sueltas.
+ */
+export function normalizarParaBuscar(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+}

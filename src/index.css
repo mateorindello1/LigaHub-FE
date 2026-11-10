@@ -271,6 +271,25 @@ h1 {
   flex-wrap: wrap;
   gap: 4px;
 }
+
+/* Celda con un dato principal y otro secundario debajo (por ejemplo, el jugador y su DNI). */
+.celda-doble {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.celda-doble__secundario {
+  font-size: 0.875em;
+  color: rgb(var(--color-sf-on-surface-variant));
+}
+
+.buscador {
+  max-width: 360px;
+  margin-bottom: 8px;
+}
 /* #endregion */
 
 /* #region Gestión de usuarios */
@@ -292,6 +311,75 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 24px;
+}
+/* #endregion */
+
+/* #region Mis datos (rol Jugador) */
+.mis-datos {
+  display: grid;
+  gap: 24px;
+  max-width: 720px;
+}
+
+.mis-datos h2 {
+  margin: 0 0 12px;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.tarjeta-datos {
+  padding: 16px;
+  border-radius: 8px;
+  background: rgb(var(--color-sf-surface-variant));
+}
+
+/* Datos en una columna en celular y en dos desde MD. */
+.lista-datos {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.lista-datos dt {
+  font-size: 0.75rem;
+  color: rgb(var(--color-sf-on-surface-variant));
+}
+
+.lista-datos dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) {
+  .lista-datos {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.lista-inscripciones {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista-inscripciones li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border: 1px solid rgb(var(--color-sf-outline-variant));
+  border-radius: 8px;
+}
+
+.lista-inscripciones__torneo,
+.lista-inscripciones__dorsal {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgb(var(--color-sf-on-surface-variant));
 }
 /* #endregion */
 
@@ -351,6 +439,11 @@ h1 {
   align-items: center;
   gap: 16px;
   margin-bottom: 20px;
+}
+
+/* Dentro del encabezado de una pantalla (el plantel), el margen lo pone .encabezado-pagina. */
+.encabezado-pagina .encabezado-equipo {
+  margin-bottom: 0;
 }
 
 .encabezado-equipo__torneo {

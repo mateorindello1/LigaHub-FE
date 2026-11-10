@@ -10,6 +10,8 @@ const ruta = (torneoId: number) => `/torneos/${torneoId}/inscripciones`;
 export const inscripcionesEquipoServicio = {
   obtenerPorTorneo: (torneoId: number, signal?: AbortSignal) =>
     clienteApi.get<InscripcionEquipo[]>(ruta(torneoId), signal),
+  obtenerPorId: (torneoId: number, id: string, signal?: AbortSignal) =>
+    clienteApi.get<InscripcionEquipo>(`${ruta(torneoId)}/${id}`, signal),
   crear: (torneoId: number, datos: DatosInscripcionEquipo) =>
     clienteApi.post<InscripcionEquipo>(ruta(torneoId), datos),
   modificar: (torneoId: number, id: string, datos: DatosInscripcionEquipo) =>

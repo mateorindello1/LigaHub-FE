@@ -22,13 +22,25 @@ const OPCIONES_MENU: ItemMenu[] = [
     icono: 'e-people',
     roles: [Rol.Administrador],
   },
+  {
+    ruta: '/jugadores',
+    texto: 'Jugadores',
+    icono: 'e-user',
+    roles: [Rol.Administrador],
+  },
   { ruta: '/inscripciones', texto: 'Inscripciones', icono: 'e-checklist' },
   { ruta: '/posiciones', texto: 'Posiciones', icono: 'e-chart' },
   { ruta: '/fixture', texto: 'Fixture', icono: 'e-month' },
   {
+    ruta: '/mis-datos',
+    texto: 'Mis datos',
+    icono: 'e-user',
+    roles: [Rol.Jugador],
+  },
+  {
     ruta: '/usuarios',
     texto: 'Usuarios',
-    icono: 'e-user',
+    icono: 'e-lock',
     roles: [Rol.Administrador],
   },
 ];
