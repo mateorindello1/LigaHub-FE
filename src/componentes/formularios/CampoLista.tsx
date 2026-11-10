@@ -25,6 +25,10 @@ interface Props<T extends FieldValues, O extends object> {
    * jugadores). Busca el texto en cualquier parte de la opción, sin distinguir mayúsculas ni tildes.
    */
   filtrable?: boolean;
+  /** Propiedad por la que se agrupan las opciones, con un título por grupo (por ejemplo, el predio). */
+  campoGrupo?: keyof O & string;
+  /** Muestra una cruz para dejar la lista sin elegir (el valor queda null). */
+  permitirVacio?: boolean;
 }
 
 /**
@@ -41,6 +45,8 @@ export function CampoLista<T extends FieldValues, O extends object>({
   campoValor,
   ayuda,
   filtrable = false,
+  campoGrupo,
+  permitirVacio = false,
 }: Props<T, O>) {
   const { field, fieldState } = useController({ control, name: nombre });
   const idMensaje = `${field.name}-mensaje`;
@@ -50,8 +56,8 @@ export function CampoLista<T extends FieldValues, O extends object>({
   // cargar la lista. Si se crearan en cada dibujo, la lista se recargaría mientras el usuario
   // elige y la selección se perdería. useMemo devuelve el mismo objeto mientras no cambien los datos.
   const campos = useMemo(
-    () => ({ text: campoTexto, value: campoValor }),
-    [campoTexto, campoValor],
+    () => ({ text: campoTexto, value: campoValor, groupBy: campoGrupo }),
+    [campoTexto, campoValor, campoGrupo],
   );
   const atributos = useMemo(
     () => ({
@@ -72,7 +78,9 @@ export function CampoLista<T extends FieldValues, O extends object>({
         floatLabelType="Auto"
         locale={IDIOMA}
         value={field.value ?? null}
-        change={(e) => field.onChange(e.value ?? undefined)}
+        // Sin elección se guarda null y no undefined: React Hook Form toma undefined como "sin
+        // cambios" y volvería al valor inicial (por ejemplo, la cancha que ya tenía el partido).
+        change={(e) => field.onChange(e.value ?? null)}
         blur={field.onBlur}
         cssClass={conError ? 'e-error' : ''}
         htmlAttributes={atributos}
@@ -80,6 +88,7 @@ export function CampoLista<T extends FieldValues, O extends object>({
         filterType="Contains"
         ignoreAccent
         filterBarPlaceholder="Buscar…"
+        showClearButton={permitirVacio}
       />
       <MensajeCampo
         id={idMensaje}

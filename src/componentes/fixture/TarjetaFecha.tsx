@@ -1,3 +1,4 @@
+import { ButtonComponent } from '@syncfusion/ej2-react-buttons';
 import { EstadoPartido, NOMBRES_ESTADO_PARTIDO } from '../../modelos/estados';
 import type { FechaFixture, PartidoFixture } from '../../modelos/fixture';
 import { formatearFechaHora } from '../../utilidades/formato';
@@ -10,10 +11,21 @@ const COLOR_ESTADO: Partial<Record<EstadoPartido, string>> = {
 
 interface Props {
   fecha: FechaFixture;
+  /**
+   * Abre la programación de un partido (cancha y día y hora). Si no se pasa, no se muestra el
+   * botón: solo el Administrador programa partidos.
+   */
+  onProgramar?: (partido: PartidoFixture) => void;
 }
 
+/** Estados en los que un partido todavía se puede programar (no se jugó). */
+const PROGRAMABLES: EstadoPartido[] = [
+  EstadoPartido.Programado,
+  EstadoPartido.Suspendido,
+];
+
 /** Una fecha del fixture como tarjeta: sus partidos y el equipo libre, si lo hay. */
-export function TarjetaFecha({ fecha }: Props) {
+export function TarjetaFecha({ fecha, onProgramar }: Props) {
   return (
     <article className="e-card tarjeta-fecha">
       <div className="e-card-header">
@@ -23,7 +35,15 @@ export function TarjetaFecha({ fecha }: Props) {
       </div>
       <ul className="tarjeta-fecha__partidos">
         {fecha.partidos.map((partido) => (
-          <FilaPartido key={partido.id} partido={partido} />
+          <FilaPartido
+            key={partido.id}
+            partido={partido}
+            onProgramar={
+              onProgramar && PROGRAMABLES.includes(partido.estadoPartido)
+                ? () => onProgramar(partido)
+                : undefined
+            }
+          />
         ))}
       </ul>
       {fecha.equipoLibre && (
@@ -36,7 +56,13 @@ export function TarjetaFecha({ fecha }: Props) {
 }
 
 /** Un partido: local, marcador (o "vs") y visitante; debajo, día, hora, cancha y estado. */
-function FilaPartido({ partido }: { partido: PartidoFixture }) {
+function FilaPartido({
+  partido,
+  onProgramar,
+}: {
+  partido: PartidoFixture;
+  onProgramar?: () => void;
+}) {
   const jugado = partido.golesLocal !== null && partido.golesVisitante !== null;
   const colorEstado = COLOR_ESTADO[partido.estadoPartido];
 
@@ -60,6 +86,17 @@ function FilaPartido({ partido }: { partido: PartidoFixture }) {
           <span className={`e-badge ${colorEstado}`}>
             {NOMBRES_ESTADO_PARTIDO[partido.estadoPartido]}
           </span>
+        )}
+        {onProgramar && (
+          <ButtonComponent
+            cssClass="e-flat e-small partido__programar"
+            iconCss="e-icons e-clock"
+            title={`Programar ${partido.local.nombre} vs ${partido.visitante.nombre}`}
+            aria-label={`Programar ${partido.local.nombre} vs ${partido.visitante.nombre}`}
+            onClick={onProgramar}
+          >
+            Programar
+          </ButtonComponent>
         )}
       </div>
     </li>

@@ -7,6 +7,7 @@ import { DialogoConfirmacion } from '../componentes/comunes/DialogoConfirmacion'
 import { EncabezadoPagina } from '../componentes/comunes/EncabezadoPagina';
 import { MensajeError } from '../componentes/comunes/MensajeError';
 import { FormularioGenerarFixture } from '../componentes/fixture/FormularioGenerarFixture';
+import { FormularioProgramarPartido } from '../componentes/fixture/FormularioProgramarPartido';
 import { TarjetaFecha } from '../componentes/fixture/TarjetaFecha';
 import { useNotificaciones } from '../componentes/notificaciones/contexto-notificaciones';
 import { useSesion } from '../componentes/sesion/contexto-sesion';
@@ -16,13 +17,17 @@ import {
   useDeshacerFixture,
   useFixture,
   useGenerarFixture,
+  useProgramarPartido,
 } from '../hooks/fixture.hooks';
 import { useInscripciones } from '../hooks/inscripciones-equipo.hooks';
+import { usePredios } from '../hooks/predios.hooks';
 import { useTorneoSeleccionado } from '../hooks/torneo-seleccionado.hook';
 import { useTorneos } from '../hooks/torneos.hooks';
 import { EstadoTorneo } from '../modelos/estados';
+import type { PartidoFixture } from '../modelos/fixture';
 import { Rol } from '../modelos/sesion';
 import type { DatosFormularioGenerarFixture } from '../validaciones/generar-fixture.validacion';
+import type { DatosFormularioProgramarPartido } from '../validaciones/programar-partido.validacion';
 
 /**
  * Caso de uso "generar fixture": muestra el fixture del torneo elegido y, si el torneo está en
@@ -47,6 +52,10 @@ export function FixturePagina() {
 
   const [generando, setGenerando] = useState(false);
   const [confirmandoDeshacer, setConfirmandoDeshacer] = useState(false);
+  const [aProgramar, setAProgramar] = useState<PartidoFixture | null>(null);
+  const programar = useProgramarPartido(torneoId ?? 0);
+  // Las canchas se piden recién al abrir la programación de un partido.
+  const { data: predios } = usePredios(aProgramar !== null);
 
   const fechas = consultaFixture.data;
   const tieneFixture = fechas !== undefined && fechas.length > 0;
@@ -55,6 +64,9 @@ export function FixturePagina() {
   const puedeGenerar = enInscripcion && fechas !== undefined && !tieneFixture;
   // Generar y deshacer el fixture es solo del Administrador; los demás lo consultan.
   const esAdministrador = useSesion().tieneRol(Rol.Administrador);
+  // Programar partidos: el Administrador, mientras el torneo no haya terminado.
+  const puedeProgramar =
+    esAdministrador && torneo?.estadoTorneo !== EstadoTorneo.Finalizado;
   // #endregion
 
   // #region Acciones
@@ -71,6 +83,22 @@ export function FixturePagina() {
       `Se generó el fixture de ${torneo.nombre}: ${generadas.length} fechas.`,
     );
     setGenerando(false);
+  }
+
+  async function guardarProgramacion(datos: DatosFormularioProgramarPartido) {
+    if (!aProgramar) return;
+    await programar.mutateAsync({
+      id: aProgramar.id,
+      datos: {
+        // ISO 8601 en UTC; vacío es null ("a confirmar").
+        fechaHora: datos.fechaHora?.toISOString() ?? null,
+        canchaId: datos.canchaId ?? null,
+      },
+    });
+    notificaciones.exito(
+      `Se programó ${aProgramar.local.nombre} vs ${aProgramar.visitante.nombre}.`,
+    );
+    setAProgramar(null);
   }
 
   function confirmarDeshacer() {
@@ -174,7 +202,11 @@ export function FixturePagina() {
           {tieneFixture && (
             <div className="grilla-fechas">
               {fechas.map((fecha) => (
-                <TarjetaFecha key={fecha.id} fecha={fecha} />
+                <TarjetaFecha
+                  key={fecha.id}
+                  fecha={fecha}
+                  onProgramar={puedeProgramar ? setAProgramar : undefined}
+                />
               ))}
             </div>
           )}
@@ -190,6 +222,20 @@ export function FixturePagina() {
             cantidadEquipos={cantidadEquipos}
             onGuardar={confirmarGeneracion}
             onCancelar={() => setGenerando(false)}
+          />
+        </Dialogo>
+      )}
+
+      {aProgramar && (
+        <Dialogo
+          titulo="Programar partido"
+          onCerrar={() => setAProgramar(null)}
+        >
+          <FormularioProgramarPartido
+            partido={aProgramar}
+            predios={predios}
+            onGuardar={guardarProgramacion}
+            onCancelar={() => setAProgramar(null)}
           />
         </Dialogo>
       )}

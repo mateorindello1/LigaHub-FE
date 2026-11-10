@@ -5,8 +5,9 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { clavesConsulta } from '../api/claves-consulta';
-import type { GenerarFixture } from '../modelos/fixture';
+import type { GenerarFixture, ProgramarPartido } from '../modelos/fixture';
 import { fixtureServicio } from '../servicios/fixture.servicio';
+import { partidosServicio } from '../servicios/partidos.servicio';
 
 /*
  * Hooks del fixture. Generarlo o deshacerlo cambia el estado del torneo (Inscripción ↔ En curso),
@@ -43,5 +44,21 @@ export function useDeshacerFixture(torneoId: number) {
     mutationFn: () => fixtureServicio.deshacer(torneoId),
     onSuccess: () =>
       clienteConsultas.invalidateQueries({ queryKey: clavesConsulta.torneos }),
+  });
+}
+
+/**
+ * Programa un partido del torneo (cancha y día y hora). Invalida ['torneos', torneoId]: el fixture
+ * y el detalle de los equipos muestran la cancha y el horario.
+ */
+export function useProgramarPartido(torneoId: number) {
+  const clienteConsultas = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, datos }: { id: string; datos: ProgramarPartido }) =>
+      partidosServicio.programar(id, datos),
+    onSuccess: () =>
+      clienteConsultas.invalidateQueries({
+        queryKey: clavesConsulta.torneo(torneoId),
+      }),
   });
 }

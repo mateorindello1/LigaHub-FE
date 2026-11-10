@@ -960,7 +960,7 @@ En el navegador, con el Administrador del seed, contra la API en Azure:
 
 ## Etapa 11 — Aprobación directa
 
-**Estado:** En curso (AD-1, en el backend, y AD-2 hechas)
+**Estado:** En curso (AD-1, en el backend, AD-2 y AD-3 hechas)
 
 Subetapas con la misma numeración en los planes del backend y del frontend. Requiere la etapa de seguridad: los endpoints y pantallas nuevos se protegen por rol desde el principio. El orden tiene un motivo:
 - **AD-1 se adelantó:** es un requisito de regularidad.
@@ -971,7 +971,7 @@ Subetapas con la misma numeración en los planes del backend y del frontend. Req
 |:-:|:--|:-:|:-:|:-:|
 | AD-1 | Base de datos en la nube (Azure SQL). **También es requisito de regularidad** | Sí | No | Hecha |
 | AD-2 | CRUD de Jugador e Inscripción de jugador | Sí | Sí | Hecha |
-| AD-3 | CRUD de Predio y Cancha, y asignar cancha y horario a los partidos | Sí | Sí | Pendiente |
+| AD-3 | CRUD de Predio y Cancha, y asignar cancha y horario a los partidos | Sí | Sí | Hecha |
 | AD-4 | Caso de uso: cargar el resultado de un partido | Sí | Sí | Pendiente |
 | AD-5 | Tests que faltan | Sí | Sí | Pendiente |
 | AD-6 | Ambientes y deploy | Sí | Sí | Pendiente |
@@ -1078,10 +1078,94 @@ En el navegador, contra la API en Azure.
 - **Consola:** sin errores en los recorridos.
 - **Navegador automatizado:** el buscador de la lista desplegable no filtraba, porque Syncfusion filtra con el evento `keyup` y el navegador automatizado escribe sin generarlo. Con un `keyup` real filtra bien, así que no afecta a un usuario.
 
-### AD-3 — Pantallas de Predio, Cancha y programación de partidos
+### AD-3 — Predios, canchas y programación de partidos
 
-- Predios y Canchas.
-- Asignar cancha y día y hora a los partidos desde el fixture.
+**Estado:** Hecha (2026-11-10)
+
+#### Qué se ve
+
+**Predios** (`/predios`, solo el Administrador): ABM con grilla y ventanas modales.
+- **Columnas:** predio, dirección (desde 768 px; en celular pasa debajo del nombre), cantidad de canchas y acciones.
+- **Acceso a las canchas:** el nombre de cada predio lleva a sus canchas, igual que un equipo inscripto lleva a su plantel.
+- **Errores del backend en el formulario:** nombre repetido. Al borrar un predio con canchas, el aviso explica que primero hay que borrarlas.
+
+**Canchas de un predio** (`/predios/:predioId`): CRUD dependiente.
+- **Encabezado:** "Canchas de X", con la dirección y "Volver a los predios".
+- **Grilla:** número y descripción.
+- **Formulario:** número (sugiere el siguiente al mayor) y descripción.
+- **Errores del backend:** número repetido en el predio, y 409 al borrar una cancha con partidos asignados.
+
+**Programar un partido** (en Fixture, solo el Administrador y con el torneo sin finalizar):
+- **Botón "Programar"** (ícono de reloj) debajo de cada partido sin jugar: programado o suspendido.
+- **Ventana modal:**
+  - El partido ("Local vs Visitante").
+  - Día y hora.
+  - Cancha, con las canchas agrupadas por predio.
+  - Los dos campos se pueden vaciar con la cruz: el partido queda "a confirmar".
+- **Errores del backend en el formulario:**
+  - "La cancha X de ... está ocupada: A vs B, el 21/11, 18:00."
+  - "Uno de los equipos ya juega a esa hora: ...".
+
+**Menú:** "Predios" (ícono `e-location`), solo para el Administrador.
+
+#### Archivos
+
+| Archivo | Qué es |
+|:--|:--|
+| `src/modelos/predio.ts` | Nuevo: `Predio`, `Cancha`, `DatosPredio` y `DatosCancha` |
+| `src/modelos/fixture.ts` | La cancha del partido incluye `id` y `predioId`; nuevos `ProgramarPartido` y `PartidoProgramado` |
+| `src/servicios/predios.servicio.ts` | Nuevo: predios y sus canchas |
+| `src/servicios/partidos.servicio.ts` | Nuevo: `programar` |
+| `src/hooks/predios.hooks.ts` | Nuevo: `usePredios(habilitado)`, `usePredio` y las mutaciones de predios y canchas |
+| `src/hooks/fixture.hooks.ts` | `useProgramarPartido` |
+| `src/validaciones/predio.validacion.ts`, `programar-partido.validacion.ts` | Nuevos |
+| `src/componentes/predios/FormularioPredio.tsx`, `FormularioCancha.tsx` | Nuevos |
+| `src/componentes/fixture/FormularioProgramarPartido.tsx` | Nuevo: día y hora, y cancha agrupada por predio |
+| `src/componentes/fixture/TarjetaFecha.tsx` | Botón "Programar" en los partidos sin jugar, si se pasa `onProgramar` |
+| `src/componentes/formularios/CampoLista.tsx` | Opciones `campoGrupo` y `permitirVacio`. Al vaciarse guarda `null` (antes, `undefined`) |
+| `src/paginas/PrediosPagina.tsx`, `CanchasPagina.tsx` | Nuevas |
+| `src/paginas/FixturePagina.tsx` | Ventana de programación |
+| `src/rutas.tsx` | `/predios` y `/predios/:predioId`, dentro de la ruta del Administrador |
+| `src/componentes/layout/Layout.tsx` | Opción "Predios" |
+| `src/api/claves-consulta.ts` | Claves `predios` y `predio` |
+
+#### Conceptos
+
+- **Lista agrupada:** `fields.groupBy` del `DropDownListComponent` muestra un título por predio sobre sus canchas. Es el `GroupBy` de `DropDownListFieldSettings` en Blazor.
+- **Fecha local a UTC:** el `DateTimePicker` devuelve un `Date` en hora local. `toISOString()` lo pasa a UTC: las 18:00 de Argentina viajan como `21:00:00.000Z`. Al mostrarlo, `Intl.DateTimeFormat` lo vuelve a la hora del navegador.
+- **Datos que se piden al abrir un formulario:** `usePredios(aProgramar !== null)` usa `skipToken` hasta que se abre "Programar". Es el mismo patrón que la lista de jugadores disponibles de AD-2.
+- **`null` y no `undefined` en React Hook Form:** `field.onChange(undefined)` no se toma como un valor nuevo, y el campo vuelve al valor inicial. Por eso `CampoLista` guarda `null` al vaciarse. Ver el problema encontrado abajo.
+
+#### Problema encontrado: la cancha no se podía quitar
+
+Al vaciar la cancha de un partido y guardar, el horario quedaba "a confirmar" pero la cancha seguía siendo la anterior.
+
+`CampoLista` pasaba `e.value ?? undefined` al formulario. React Hook Form trata `undefined` como "sin valor" y usa el inicial, que era la cancha que ya tenía el partido. Con `e.value ?? null`, el formulario envía `canchaId: null` y el backend la quita.
+
+Las otras listas no cambian de comportamiento: sus esquemas de Zod rechazan `null` con el mismo mensaje ("Elegí un equipo.").
+
+#### Cómo se probó
+
+En el navegador, como Administrador y contra la API en Azure.
+
+**Predios y canchas:**
+- Enviado vacío, el formulario de predio muestra los dos mensajes de obligatorio.
+- "complejo parque norte" muestra el 409 del nombre repetido. Con otro nombre, el predio se crea con 0 canchas.
+- En sus canchas, el alta sugiere el número 1 y crea la cancha. La segunda alta sugiere el 2; cambiado a 1, muestra el 409.
+
+**Programación en Apertura:**
+- "Programar" aparece en los 7 partidos sin jugar (6 programados y el suspendido de la fecha 3), y no en los jugados.
+- La ventana trae precargados el horario (15:00 hora local) y la cancha actual. La lista muestra las canchas agrupadas por predio.
+- Los Halcones vs Deportivo Sur pasó al 21/11 18:00 en la cancha de prueba, y la tarjeta se actualizó.
+- Estrella Roja vs Atlético Norte en la misma cancha a las 18:30 mostró el 409 con el horario en hora argentina.
+- Al vaciar los dos campos, quedó "a confirmar". Esta prueba encontró el problema de la cancha descrito arriba.
+- Borrar la cancha de prueba con un partido asignado respondió 409.
+
+**Limpieza:** se restauraron por la API los tres partidos a sus valores originales y se borraron la cancha y el predio de prueba desde la interfaz.
+
+**Celular (375 px):** las tarjetas del fixture muestran el botón "Programar" debajo de cada partido.
+
+**Consola:** sin errores.
 
 ### AD-4 — Pantalla para cargar el resultado
 

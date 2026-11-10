@@ -55,6 +55,20 @@ export const router = createBrowserRouter([
                 }),
               },
               {
+                path: 'predios',
+                lazy: async () => ({
+                  Component: (await import('./paginas/PrediosPagina'))
+                    .PrediosPagina,
+                }),
+              },
+              {
+                path: 'predios/:predioId',
+                lazy: async () => ({
+                  Component: (await import('./paginas/CanchasPagina'))
+                    .CanchasPagina,
+                }),
+              },
+              {
                 path: 'usuarios',
                 lazy: async () => ({
                   Component: (await import('./paginas/UsuariosPagina'))
