@@ -1,6 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router';
 import type { Rol } from '../../modelos/sesion';
-import { SinPermisoPagina } from '../../paginas/SinPermisoPagina';
 import { useSesion } from './contexto-sesion';
 
 interface Props {
@@ -12,7 +11,8 @@ interface Props {
  * Protege un grupo de rutas: se usa como elemento de una ruta sin dirección y dibuja las rutas
  * hijas (en su <Outlet />) solo si el usuario puede verlas.
  * - Sin sesión: lleva al login y, después de ingresar, vuelve a la pantalla pedida.
- * - Con sesión pero sin el rol: muestra "sin permiso".
+ * - Con sesión pero sin el rol: lleva a la página principal (replace: "atrás" no vuelve a la
+ *   pantalla prohibida).
  *
  * Equivale a [Authorize(Roles = "...")] en una página de Blazor, o a <AuthorizeRouteView>.
  * Es solo para la experiencia de uso: la protección real está en la API, que rechaza cualquier
@@ -27,7 +27,7 @@ export function RutaProtegida({ roles = [] }: Props) {
     return <Navigate to={`/login?volver=${volver}`} replace />;
   }
   if (roles.length > 0 && !tieneRol(...roles)) {
-    return <SinPermisoPagina />;
+    return <Navigate to="/" replace />;
   }
   return <Outlet />;
 }

@@ -851,7 +851,9 @@ Las consultas de la API son públicas y solo la escritura es del Administrador. 
 | Inicio, Posiciones y detalle del equipo | Sí | Sí |
 | Fixture | Sí, sin "Generar" ni "Deshacer" ni las indicaciones para generarlo | Sí, con los botones |
 | Inscripciones | Sí, solo consulta: sin "Inscribir equipo" ni columna de acciones | Sí, con alta, cambio y baja |
-| Torneos y Equipos (ABM) | No figuran en el menú. Sin sesión, la dirección lleva al login y vuelve; con otro rol, "Sin permiso" | Sí |
+| Torneos y Equipos (ABM) | No figuran en el menú. Sin sesión, la dirección lleva al login y vuelve; con otro rol, a la página principal | Sí |
+
+**Cambio posterior (2026-11-10):** al principio, con otro rol se mostraba una pantalla "Sin permiso" con un botón para volver al inicio. Se reemplazó por una redirección directa a la página principal (`<Navigate to="/" replace />`) y se borró `SinPermisoPagina.tsx`. Con `replace`, el botón "atrás" del navegador no vuelve a la pantalla prohibida.
 
 Además, al tocar "Salir" se vuelve al inicio. Si se estaba en una pantalla de administración, sin sesión llevaría al login, que es raro justo después de salir.
 
@@ -859,9 +861,8 @@ Además, al tocar "Salir" se vuelve al inicio. Si se estaba en una pantalla de a
 
 | Archivo | Qué es |
 |:--|:--|
-| `src/componentes/sesion/RutaProtegida.tsx` | Protege un grupo de rutas: sin sesión lleva al login con `?volver=`; sin el rol muestra "Sin permiso" |
+| `src/componentes/sesion/RutaProtegida.tsx` | Protege un grupo de rutas: sin sesión lleva al login con `?volver=`; sin el rol, a la página principal |
 | `src/componentes/sesion/SoloConRol.tsx` | Muestra su contenido solo si el usuario tiene alguno de los roles |
-| `src/paginas/SinPermisoPagina.tsx` | "Tu usuario no tiene permiso para ver esta pantalla." |
 | `src/rutas.tsx` | Torneos y Equipos dentro de una ruta sin dirección con `<RutaProtegida roles={[Rol.Administrador]} />` |
 | `src/componentes/layout/Layout.tsx`, `MenuNavegacion.tsx` | Cada opción del menú puede tener `roles`; el menú muestra solo las que corresponden |
 | `src/paginas/InscripcionesPagina.tsx` | "Inscribir equipo" con `SoloConRol`; la columna de acciones solo si es Administrador y las inscripciones están abiertas |
@@ -884,7 +885,7 @@ En el navegador, contra la API con los usuarios del seed:
   - El menú muestra Inicio, Inscripciones, Posiciones y Fixture.
   - `/torneos` lleva a `/login?volver=/torneos`.
   - Fixture de Clausura: "Este torneo todavía no tiene fixture.", sin botones ni indicaciones.
-- **Jugador** (ingresando desde ese login): vuelve a `/torneos` y ve "Sin permiso"; el menú sigue sin Torneos ni Equipos; Inscripciones de Clausura solo con la columna Equipo y sin botones; Fixture de Apertura con las 5 fechas y sin botones.
+- **Jugador** (ingresando desde ese login): vuelve a `/torneos` y ve "Sin permiso" (hoy lo lleva a la página principal, ver el cambio posterior); el menú sigue sin Torneos ni Equipos; Inscripciones de Clausura solo con la columna Equipo y sin botones; Fixture de Apertura con las 5 fechas y sin botones.
 - **"Salir"** desde Fixture vuelve al inicio.
 - **Administrador:** el menú completo; Inscripciones con "Inscribir equipo" y la columna de acciones; Fixture de Apertura con "Deshacer fixture".
 - **Sesión inválida en `/torneos`** (token alterado y recarga): lleva a `/login?volver=/torneos` con el aviso "Tu sesión venció", sin errores en la consola.
@@ -1067,7 +1068,7 @@ En el navegador, contra la API en Azure.
   - La base quedó como estaba.
 
 **Como Jugador:**
-- **Menú:** muestra "Mis datos" y no "Jugadores"; `/jugadores` muestra "Sin permiso".
+- **Menú:** muestra "Mis datos" y no "Jugadores"; `/jugadores` muestra "Sin permiso" (hoy lleva a la página principal; ver S-5).
 - **Mis datos:** muestra a Díaz, Matías con la inscripción en Los Halcones, dorsal 10 y "Capitán".
 - **Modificación:** cambiar el teléfono actualiza la tarjeta; después se volvió al valor original.
 - **Desde la consola, con el token de la sesión:** `GET /jugadores/:otro` y `GET /jugadores` responden 403.
@@ -1285,7 +1286,7 @@ pnpm add -D vitest @vitest/coverage-v8 jsdom @testing-library/react @testing-lib
 | Archivo | Qué prueba |
 |:--|:--|
 | `FormularioTorneo.test.tsx` | El formulario con los campos reales de Syncfusion: validación sin enviar, `onGuardar` con los datos limpios (output property), carga del torneo recibido (input property), error 409 del backend dentro del formulario, `onCancelar` |
-| `RutaProtegida.test.tsx` | Protección de rutas por rol con un router en memoria y una sesión simulada: login, "Sin permiso" o la pantalla |
+| `RutaProtegida.test.tsx` | Protección de rutas por rol con un router en memoria y una sesión simulada: login, página principal o la pantalla |
 | `PlantelPartido.test.tsx` | Casillas "jugó" (CheckBox de Syncfusion): conteo, aviso de cada cambio, "Todos" y "Ninguno", deshabilitado |
 | `ListaEventos.test.tsx` | Lista de eventos: contenido, lista vacía, botón de quitar que avisa la posición, solo lectura |
 | `utilidades.test.ts` | Marcador, búsqueda sin tildes, diferencia de gol y el esquema de Zod del evento |

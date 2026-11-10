@@ -39,7 +39,7 @@ Para los end-to-end:
 | Archivo | Qué prueba |
 |:--|:--|
 | `componentes/torneos/FormularioTorneo.test.tsx` | Formulario con los campos de Syncfusion: errores de validación sin enviar; datos válidos que salen por `onGuardar` sin espacios sobrantes (**output property**); carga del torneo recibido (**input property**); error 409 del backend en el formulario; `onCancelar` |
-| `componentes/sesion/RutaProtegida.test.tsx` | Protección de rutas por rol: sin sesión lleva al login (y recuerda a qué pantalla volver); con otro rol muestra "Sin permiso"; con el rol, la pantalla |
+| `componentes/sesion/RutaProtegida.test.tsx` | Protección de rutas por rol: sin sesión lleva al login (y recuerda a qué pantalla volver); con otro rol lleva a la página principal; con el rol, la pantalla |
 | `componentes/resultado/PlantelPartido.test.tsx` | Casillas "jugó" (CheckBox de Syncfusion): cuenta y marca a los que jugaron, avisa cada cambio, "Todos" y "Ninguno", deshabilitado con el torneo finalizado |
 | `componentes/resultado/ListaEventos.test.tsx` | Eventos del partido con minuto, tipo, jugador y equipo; lista vacía; botón para quitar que avisa la posición; solo lectura sin `onQuitar` |
 | `utilidades/utilidades.test.ts` | Marcador calculado a partir de los goles; búsqueda sin tildes; diferencia de gol con signo; esquema del evento (regla del cambio y minuto) |

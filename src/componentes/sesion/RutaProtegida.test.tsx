@@ -41,6 +41,7 @@ function entrarATorneos(usuario: UsuarioSesion | null) {
         children: [{ path: '/torneos', element: <h1>Pantalla de torneos</h1> }],
       },
       { path: '/login', element: <h1>Pantalla de login</h1> },
+      { path: '/', element: <h1>Página principal</h1> },
     ],
     { initialEntries: ['/torneos'] },
   );
@@ -62,14 +63,13 @@ describe('RutaProtegida', () => {
     expect(router.state.location.search).toBe('?volver=%2Ftorneos');
   });
 
-  it('con sesión pero sin el rol muestra "sin permiso"', () => {
+  it('con sesión pero sin el rol lleva a la página principal', () => {
     // Act
-    entrarATorneos(usuarioCon(Rol.Jugador));
+    const router = entrarATorneos(usuarioCon(Rol.Jugador));
 
     // Assert
-    expect(
-      screen.getByRole('heading', { name: 'Sin permiso' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Página principal')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/');
     expect(screen.queryByText('Pantalla de torneos')).not.toBeInTheDocument();
   });
 
