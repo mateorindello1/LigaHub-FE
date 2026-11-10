@@ -11,4 +11,6 @@ export const authServicio = {
     clienteApi.post<RespuestaLogin>('/auth/login', datos),
   obtenerUsuarioActual: (signal?: AbortSignal) =>
     clienteApi.get<UsuarioSesion>('/auth/yo', signal),
+  /** Revoca el token de refresco y borra su cookie. El refresco está en api/refresco-sesion.ts. */
+  cerrarSesion: () => clienteApi.post<void>('/auth/cerrar-sesion'),
 };

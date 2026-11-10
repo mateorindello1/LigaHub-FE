@@ -10,6 +10,8 @@ interface Props {
 /**
  * Protege un grupo de rutas: se usa como elemento de una ruta sin dirección y dibuja las rutas
  * hijas (en su <Outlet />) solo si el usuario puede verlas.
+ * - Mientras se recupera la sesión al abrir la aplicación: no dibuja nada (todavía no se sabe
+ *   si hay sesión, y mandar al login sería un error).
  * - Sin sesión: lleva al login y, después de ingresar, vuelve a la pantalla pedida.
  * - Con sesión pero sin el rol: lleva a la página principal (replace: "atrás" no vuelve a la
  *   pantalla prohibida).
@@ -19,9 +21,12 @@ interface Props {
  * pedido sin el rol aunque alguien llegue a la pantalla.
  */
 export function RutaProtegida({ roles = [] }: Props) {
-  const { usuario, tieneRol } = useSesion();
+  const { usuario, verificando, tieneRol } = useSesion();
   const ubicacion = useLocation();
 
+  if (verificando) {
+    return null;
+  }
   if (!usuario) {
     const volver = encodeURIComponent(ubicacion.pathname + ubicacion.search);
     return <Navigate to={`/login?volver=${volver}`} replace />;

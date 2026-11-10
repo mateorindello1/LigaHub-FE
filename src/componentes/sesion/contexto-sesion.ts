@@ -5,6 +5,11 @@ import type { DatosLogin, Rol, UsuarioSesion } from '../../modelos/sesion';
 export interface ContextoSesionValor {
   /** Usuario de la sesión, o null si no inició sesión. */
   usuario: UsuarioSesion | null;
+  /**
+   * true mientras se recupera la sesión al abrir la aplicación (con la cookie del token de
+   * refresco). Todavía no se sabe si hay sesión: las pantallas protegidas esperan.
+   */
+  verificando: boolean;
   /** Inicia sesión. Si las credenciales no son válidas, la promesa falla con un ErrorApi. */
   iniciarSesion: (datos: DatosLogin) => Promise<UsuarioSesion>;
   cerrarSesion: () => void;

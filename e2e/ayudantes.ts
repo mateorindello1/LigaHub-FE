@@ -16,7 +16,8 @@ function contrasenia(): string {
 
 /**
  * Inicia sesión desde la pantalla de login, como lo haría una persona, y espera a que la barra
- * muestre el usuario. Devuelve el token de la sesión, para limpiar datos por la API al terminar.
+ * muestre el usuario. Devuelve el token de acceso, para limpiar datos por la API al terminar.
+ * El token vive solo en la memoria de la página, así que se toma de la respuesta del login.
  */
 export async function iniciarSesion(
   page: Page,
@@ -25,18 +26,16 @@ export async function iniciarSesion(
   await page.goto('/login');
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Contraseña').fill(contrasenia());
+  const respuestaLogin = page.waitForResponse(
+    (respuesta) =>
+      respuesta.url().endsWith('/auth/login') &&
+      respuesta.request().method() === 'POST',
+  );
   await page.getByRole('button', { name: 'Ingresar' }).click();
+  const { token } = (await (await respuestaLogin).json()) as { token?: string };
   // El email de la barra superior (también aparece en el aviso de bienvenida).
   await expect(page.locator('.menu-sesion__email')).toHaveText(email);
 
-  const token = await page.evaluate(
-    () =>
-      (
-        JSON.parse(sessionStorage.getItem('ligahub.sesion') ?? '{}') as {
-          token?: string;
-        }
-      ).token,
-  );
   expect(token).toBeTruthy();
   return token!;
 }

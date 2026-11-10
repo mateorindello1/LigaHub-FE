@@ -1,34 +1,16 @@
-import type { RespuestaLogin, UsuarioSesion } from '../modelos/sesion';
+import type { RespuestaLogin } from '../modelos/sesion';
 
-/** Sesión activa: el token, su vencimiento y el usuario. */
+/** Sesión activa: el token de acceso, su vencimiento y el usuario. */
 export type Sesion = RespuestaLogin;
 
 /** Motivo por el que terminó la última sesión. */
 export type MotivoCierre = 'cierre' | 'vencida';
 
-const CLAVE = 'ligahub.sesion';
+/** Canal entre pestañas: al cerrar la sesión en una, se cierra en las demás. */
+const NOMBRE_CANAL = 'ligahub.sesion';
 
-/**
- * Lee la sesión de sessionStorage. Devuelve null si no hay, si está dañada o si ya venció.
- * sessionStorage puede no estar disponible (por ejemplo, con el almacenamiento bloqueado):
- * en ese caso la sesión vive solo en memoria.
- */
-function leerGuardada(): Sesion | null {
-  try {
-    const texto = sessionStorage.getItem(CLAVE);
-    if (!texto) return null;
-    const sesion = JSON.parse(texto) as Sesion;
-    if (!sesion.token || new Date(sesion.expira).getTime() <= Date.now()) {
-      sessionStorage.removeItem(CLAVE);
-      return null;
-    }
-    return sesion;
-  } catch {
-    return null;
-  }
-}
-
-let actual: Sesion | null = leerGuardada();
+let actual: Sesion | null = null;
+let verificada = false;
 let ultimoMotivo: MotivoCierre | null = null;
 const suscriptores = new Set<() => void>();
 
@@ -36,9 +18,17 @@ function avisar() {
   suscriptores.forEach((avisarCambio) => avisarCambio());
 }
 
+/** BroadcastChannel puede no existir (por ejemplo, en los tests con jsdom). */
+const canal =
+  typeof BroadcastChannel === 'undefined'
+    ? null
+    : new BroadcastChannel(NOMBRE_CANAL);
+
 /**
- * Sesión guardada en memoria y en sessionStorage: dura mientras la pestaña esté abierta
- * (decisión de docs/seguridad.md del backend).
+ * Sesión activa, **solo en memoria**: el token de acceso no se guarda en sessionStorage ni en
+ * localStorage, donde un script inyectado (XSS) podría leerlo. Al recargar la página se pierde,
+ * y se recupera pidiendo uno nuevo con la cookie httpOnly del token de refresco (ver
+ * refresco-sesion.ts).
  *
  * Es un "almacén externo" a React con suscriptores (patrón Observer): lo usa el cliente de API
  * para enviar el token, y los componentes lo leen con useSyncExternalStore para volver a
@@ -48,34 +38,37 @@ export const sesionGuardada = {
   /** Sesión activa, o null. */
   obtener: (): Sesion | null => actual,
 
+  /**
+   * Indica si ya se intentó recuperar la sesión al abrir la aplicación. Hasta entonces no se sabe
+   * si hay sesión, y las pantallas protegidas esperan en lugar de mandar al login.
+   */
+  estaVerificada: (): boolean => verificada,
+
+  marcarVerificada() {
+    if (verificada) return;
+    verificada = true;
+    avisar();
+  },
+
   /** Motivo del último cierre (para avisar "tu sesión venció"). */
   ultimoMotivo: (): MotivoCierre | null => ultimoMotivo,
 
   guardar(sesion: Sesion) {
     actual = sesion;
     ultimoMotivo = null;
-    try {
-      sessionStorage.setItem(CLAVE, JSON.stringify(sesion));
-    } catch {
-      // Sin almacenamiento disponible: la sesión queda solo en memoria.
-    }
     avisar();
   },
 
-  /** Actualiza los datos del usuario (por ejemplo, roles nuevos) sin cambiar el token. */
-  actualizarUsuario(usuario: UsuarioSesion) {
-    if (actual) this.guardar({ ...actual, usuario });
-  },
-
-  borrar(motivo: MotivoCierre) {
+  /**
+   * Cierra la sesión en esta pestaña. Si la cerró el usuario, avisa a las demás pestañas para
+   * que también la cierren.
+   * @param avisarPestanias false cuando el aviso viene de otra pestaña (para no reenviarlo).
+   */
+  borrar(motivo: MotivoCierre, avisarPestanias = true) {
     if (!actual) return;
     actual = null;
     ultimoMotivo = motivo;
-    try {
-      sessionStorage.removeItem(CLAVE);
-    } catch {
-      // Nada que borrar.
-    }
+    if (motivo === 'cierre' && avisarPestanias) canal?.postMessage('cierre');
     avisar();
   },
 
@@ -87,3 +80,8 @@ export const sesionGuardada = {
     };
   },
 };
+
+// Cierre de sesión en otra pestaña: el token de refresco ya se revocó, así que esta también cierra.
+canal?.addEventListener('message', (evento: MessageEvent) => {
+  if (evento.data === 'cierre') sesionGuardada.borrar('cierre', false);
+});

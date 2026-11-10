@@ -33,11 +33,14 @@ export interface DatosLogin {
   contrasenia: string;
 }
 
-/** Respuesta de POST /auth/login. */
+/**
+ * Respuesta de POST /auth/login y POST /auth/refrescar. El token de refresco no viene acá: la API
+ * lo deja en una cookie httpOnly, que el JavaScript no puede leer.
+ */
 export interface RespuestaLogin {
-  /** Token que se envía en cada pedido: "Authorization: Bearer <token>". */
+  /** Token de acceso que se envía en cada pedido: "Authorization: Bearer <token>". Dura 15 minutos. */
   token: string;
-  /** Vencimiento del token (UTC, ISO 8601). */
+  /** Vencimiento del token de acceso (UTC, ISO 8601). */
   expira: string;
   usuario: UsuarioSesion;
 }

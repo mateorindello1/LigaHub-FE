@@ -9,10 +9,13 @@ import { useSesion } from './contexto-sesion';
  * En celular se muestran solo los íconos, para que entren en la barra.
  */
 export function MenuSesion() {
-  const { usuario, cerrarSesion } = useSesion();
+  const { usuario, verificando, cerrarSesion } = useSesion();
   const notificaciones = useNotificaciones();
   const ubicacion = useLocation();
   const navegar = useNavigate();
+
+  // Mientras se recupera la sesión no se muestra nada, para que "Ingresar" no aparezca un instante.
+  if (verificando) return null;
 
   if (!usuario) {
     // En la pantalla de login no hace falta el acceso.

@@ -26,9 +26,10 @@ function usuarioCon(...roles: Rol[]): UsuarioSesion {
  * Dibuja la aplicación en /torneos, una pantalla protegida para el Administrador, con la sesión
  * indicada (null: sin sesión).
  */
-function entrarATorneos(usuario: UsuarioSesion | null) {
+function entrarATorneos(usuario: UsuarioSesion | null, verificando = false) {
   const sesion: ContextoSesionValor = {
     usuario,
+    verificando,
     iniciarSesion: vi.fn(),
     cerrarSesion: vi.fn(),
     tieneRol: (...roles) =>
@@ -70,6 +71,16 @@ describe('RutaProtegida', () => {
     // Assert
     expect(screen.getByText('Página principal')).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/');
+    expect(screen.queryByText('Pantalla de torneos')).not.toBeInTheDocument();
+  });
+
+  it('mientras se recupera la sesión no muestra nada ni lleva al login', () => {
+    // Act
+    const router = entrarATorneos(null, true);
+
+    // Assert
+    expect(router.state.location.pathname).toBe('/torneos');
+    expect(screen.queryByText('Pantalla de login')).not.toBeInTheDocument();
     expect(screen.queryByText('Pantalla de torneos')).not.toBeInTheDocument();
   });
 

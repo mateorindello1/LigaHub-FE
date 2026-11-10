@@ -767,10 +767,13 @@ El diseño (mecanismo, roles, permisos y medidas) está decidido en [seguridad.m
 | S-4 | Login, sesión y envío del token desde el cliente de API | No | Sí | Hecha |
 | S-5 | Pantallas, menú y acciones según el rol; sesión vencida (401) y sin permiso (403) | No | Sí | Hecha |
 | S-6 | Gestión de usuarios y roles por el administrador | Sí | Sí | Hecha |
+| S-7 | Tokens de refresco con rotación y cookie `httpOnly`; token de acceso de 15 minutos solo en memoria | Sí | Sí | Hecha |
 
 ### S-4 — Login y sesión
 
 **Estado:** Hecha (2026-11-09)
+
+> **Cambio posterior (S-7):** la sesión ya no se guarda en `sessionStorage` ni se cierra con un temporizador. El token de acceso dura 15 minutos y vive solo en memoria, y se renueva con un token de refresco en una cookie `httpOnly`. Lo de abajo describe cómo quedó en S-4.
 
 #### Qué se ve
 
@@ -958,6 +961,55 @@ En el navegador, con el Administrador del seed, contra la API en Azure:
 - **Baja:** con confirmación; la fila desaparece.
 - **Celular (375 px):** solo las columnas de email y acciones, con los roles y el jugador debajo del email.
 - **Consola:** sin errores en todo el ciclo de alta, modificación, contraseña, baja, navegación y cambio de tamaño. Mientras se editaba el código aparecieron errores `insertBefore`, pero vienen de la recarga en caliente de Vite con la grilla de Syncfusion abierta y no se repiten con la página recién cargada.
+
+### S-7 — Tokens de refresco y cookie `httpOnly`
+
+**Estado:** Hecha (2026-11-10)
+
+Reemplaza cómo se guarda la sesión desde S-4. El diseño completo está en `docs/seguridad.md` del backend.
+
+| | Antes (S-4) | Ahora (S-7) |
+|:--|:--|:--|
+| Token de acceso | 8 horas, en memoria y en `sessionStorage` | 15 minutos, **solo en memoria** |
+| Token de refresco | No había | En una cookie `httpOnly` que pone la API; el JavaScript no la ve |
+| Al recargar la página | Se leía de `sessionStorage` y se revalidaba con `GET /auth/yo` | Se recupera con `POST /auth/refrescar` |
+| Al vencer el token | Un temporizador cerraba la sesión y avisaba | Se renueva solo, sin que el usuario lo note. Se avisa recién cuando la sesión (7 días) ya no se puede renovar |
+| Al cerrar la pestaña | Se perdía la sesión | La sesión sigue hasta 7 días desde el login, o hasta "Salir" |
+| "Salir" | Borraba la sesión en el navegador | Además revoca la sesión en la API (`POST /auth/cerrar-sesion`) y la cierra en las demás pestañas |
+
+#### Archivos
+
+| Archivo | Cambio |
+|:--|:--|
+| `src/api/sesion-guardada.ts` | Solo en memoria (sin `sessionStorage`); estado "verificada"; aviso de cierre a las demás pestañas con `BroadcastChannel` |
+| `src/api/refresco-sesion.ts` | Nuevo: `POST /auth/refrescar` con la cookie, unificando los pedidos simultáneos (promesa compartida y Web Locks) |
+| `src/api/cliente-api.ts` | `credentials: 'include'`; renueva el token si está por vencer (menos de 30 segundos) y, ante un 401, renueva y reintenta una vez |
+| `src/componentes/sesion/ProveedorSesion.tsx` | Recupera la sesión al abrir; sin temporizador ni `GET /auth/yo`; "Salir" llama a `cerrar-sesion` |
+| `src/componentes/sesion/contexto-sesion.ts` | `verificando`: true mientras se recupera la sesión |
+| `src/componentes/sesion/RutaProtegida.tsx` | Mientras se verifica no dibuja nada (antes de saber si hay sesión, mandar al login sería un error) |
+| `src/componentes/sesion/MenuSesion.tsx` | Mientras se verifica no muestra "Ingresar", para que no aparezca un instante |
+| `src/servicios/auth.servicio.ts` | `cerrarSesion` |
+| `src/modelos/sesion.ts` | Comentarios de `RespuestaLogin` |
+| `e2e/ayudantes.ts` | El token se toma de la respuesta del login (ya no está en `sessionStorage`) |
+| `src/api/cliente-api.test.ts`, `e2e/sesion.spec.ts`, `src/componentes/sesion/RutaProtegida.test.tsx` | Tests nuevos (ver abajo) |
+
+#### Conceptos
+
+- **Por qué en memoria y no en `sessionStorage`:** cualquier script que corra en la página (por ejemplo, uno inyectado por XSS o por una dependencia comprometida) puede leer `sessionStorage` y llevarse el token. Una variable del módulo no está expuesta de esa forma, y la cookie `httpOnly` directamente no es accesible desde JavaScript. Es la misma idea que la cookie de autenticación de Blazor Server con `HttpOnly`.
+- **`credentials: 'include'`:** sin esto, el navegador no envía la cookie a otro origen (la API está en `localhost:3000` y la página en `localhost:5173`) ni guarda la que llega en la respuesta. La API tiene que responder con `Access-Control-Allow-Credentials: true`.
+- **Renovación transparente:** el cliente de API renueva el token antes de usarlo si está por vencer, y si igual recibe un 401 (por ejemplo, la computadora estuvo suspendida), renueva y repite el pedido. Equivale a un `DelegatingHandler` que reintenta con un token nuevo.
+- **Un refresco por vez:** cada token de refresco sirve una sola vez, y usarlo dos veces corta la sesión (se toma como robo). Por eso los refrescos se unifican:
+  - En la pestaña, con una promesa compartida: si tres pedidos reciben 401 a la vez, hay un solo refresco. También cubre el doble montaje de los efectos en desarrollo (StrictMode).
+  - Entre pestañas, con `navigator.locks.request(...)` ([Web Locks API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API)): una pestaña espera a la otra, y para entonces la cookie ya es la nueva. Es un `SemaphoreSlim` compartido entre pestañas.
+- **Estado "verificando":** al abrir la aplicación no se sabe si hay sesión hasta que responde `/auth/refrescar`. Mientras tanto, las pantallas protegidas no dibujan nada en lugar de mandar al login. Es el `<Authorizing>` de `<AuthorizeRouteView>` en Blazor.
+- **`BroadcastChannel`:** canal de mensajes entre pestañas del mismo origen. Al tocar "Salir" en una, las demás cierran la sesión enseguida (de todas formas, su token de refresco ya quedó revocado).
+
+#### Cómo se probó
+
+- **Componentes y unitarios** (`pnpm test`, pasan 26):
+  - `cliente-api.test.ts` (nuevo, con `fetch` simulado): ante un 401 renueva y reintenta; si no puede renovar, cierra la sesión como vencida y lanza el 401; si el token vence en menos de 30 segundos lo renueva antes; tres pedidos con 401 a la vez hacen un solo refresco; todos los pedidos van con `credentials: 'include'`.
+  - `RutaProtegida.test.tsx`: mientras se verifica la sesión no muestra la pantalla ni lleva al login.
+- **End-to-end** (`pnpm test:e2e`, pasan los 5): `sesion.spec.ts` (nuevo) inicia sesión, recarga la página y la sesión sigue; la cookie existe con `httpOnly`, `secure` y `path=/auth`, y ni `document.cookie` ni `sessionStorage` ni `localStorage` tienen tokens; "Salir" recibe 204, y después de recargar no hay sesión ni cookie.
 
 ## Etapa 11 — Aprobación directa
 

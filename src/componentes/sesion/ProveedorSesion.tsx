@@ -5,6 +5,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
+import { refrescarSesion } from '../../api/refresco-sesion';
 import { sesionGuardada } from '../../api/sesion-guardada';
 import type { DatosLogin, Rol } from '../../modelos/sesion';
 import { authServicio } from '../../servicios/auth.servicio';
@@ -17,10 +18,10 @@ interface Props {
 
 /**
  * Administra la sesión y la ofrece a toda la aplicación a través del contexto.
- * - Lee la sesión guardada (sobrevive a recargar la página, no a cerrar la pestaña).
- * - Al abrir la aplicación con una sesión guardada, la revalida con GET /auth/yo: si el usuario
- *   cambió (por ejemplo, sus roles) se actualiza, y si el token ya no sirve se cierra.
- * - Cierra la sesión sola cuando vence el token, y avisa.
+ * - Al abrir la aplicación (o recargar la página) recupera la sesión con la cookie del token de
+ *   refresco: el token de acceso vive solo en memoria y se pierde al recargar.
+ * - Mientras tanto, `verificando` es true y las pantallas protegidas esperan.
+ * - Avisa cuando la sesión se cierra por vencimiento.
  */
 export function ProveedorSesion({ children }: Props) {
   const notificaciones = useNotificaciones();
@@ -30,31 +31,25 @@ export function ProveedorSesion({ children }: Props) {
     sesionGuardada.suscribir,
     sesionGuardada.obtener,
   );
+  const verificada = useSyncExternalStore(
+    sesionGuardada.suscribir,
+    sesionGuardada.estaVerificada,
+  );
 
-  // Revalidación al abrir la aplicación (una sola vez).
+  // Recuperación de la sesión al abrir la aplicación (una sola vez). En desarrollo StrictMode
+  // ejecuta el efecto dos veces, pero refrescarSesion unifica los pedidos simultáneos.
   useEffect(() => {
-    if (!sesionGuardada.obtener()) return;
-    const cancelacion = new AbortController();
-    authServicio
-      .obtenerUsuarioActual(cancelacion.signal)
-      .then((usuario) => sesionGuardada.actualizarUsuario(usuario))
+    if (sesionGuardada.estaVerificada()) return;
+    refrescarSesion()
+      .then((recuperada) => {
+        if (recuperada) sesionGuardada.guardar(recuperada);
+      })
       .catch(() => {
-        // Un 401 ya cerró la sesión en el cliente de API. Otros errores (por ejemplo, sin
-        // conexión) no la cierran: se sigue con los datos guardados.
-      });
-    return () => cancelacion.abort();
+        // Sin conexión o error del servidor: se sigue sin sesión, la aplicación funciona igual
+        // para las consultas públicas.
+      })
+      .finally(() => sesionGuardada.marcarVerificada());
   }, []);
-
-  // Cierre automático al vencer el token.
-  useEffect(() => {
-    if (!sesion) return;
-    const milisegundos = new Date(sesion.expira).getTime() - Date.now();
-    const temporizador = setTimeout(
-      () => sesionGuardada.borrar('vencida'),
-      Math.max(milisegundos, 0),
-    );
-    return () => clearTimeout(temporizador);
-  }, [sesion]);
 
   // Aviso cuando la sesión se cierra por vencimiento (no cuando el usuario sale a propósito).
   useEffect(
@@ -76,18 +71,24 @@ export function ProveedorSesion({ children }: Props) {
     return respuesta.usuario;
   }, []);
 
-  const cerrarSesion = useCallback(() => sesionGuardada.borrar('cierre'), []);
+  const cerrarSesion = useCallback(() => {
+    // La sesión se cierra en el momento en la interfaz; la API revoca el token de refresco y
+    // borra la cookie. Si ese pedido falla (sin conexión), la sesión vence sola.
+    sesionGuardada.borrar('cierre');
+    authServicio.cerrarSesion().catch(() => undefined);
+  }, []);
 
   const valor = useMemo<ContextoSesionValor>(() => {
     const usuario = sesion?.usuario ?? null;
     return {
       usuario,
+      verificando: !verificada,
       iniciarSesion,
       cerrarSesion,
       tieneRol: (...roles: Rol[]) =>
         usuario?.roles.some((rol) => roles.includes(rol)) ?? false,
     };
-  }, [sesion, iniciarSesion, cerrarSesion]);
+  }, [sesion, verificada, iniciarSesion, cerrarSesion]);
 
   return (
     <ContextoSesion.Provider value={valor}>{children}</ContextoSesion.Provider>
