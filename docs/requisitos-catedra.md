@@ -108,8 +108,8 @@ Se verificó cada pantalla en el navegador a 375, 800 y 1280 px (ver "Cómo prob
 | Regla de negocio (409): nombre repetido, inscripciones cerradas | Recuadro de error dentro del diálogo, que queda abierto | [errores-servidor.ts:24](../src/componentes/formularios/errores-servidor.ts#L24) |
 | Error al borrar o deshacer | Aviso rojo con el motivo del backend | [TorneosPagina.tsx:69](../src/paginas/TorneosPagina.tsx#L69) |
 | Servidor caído o sin conexión | "No se pudo conectar con el servidor…" y botón Reintentar | [cliente-api.ts:33](../src/api/cliente-api.ts#L33), [MensajeError.tsx](../src/componentes/comunes/MensajeError.tsx) |
-| Registro inexistente (404) | Mensaje del backend, sin "Reintentar" (no serviría) | [DetalleEquipoPagina.tsx](../src/paginas/DetalleEquipoPagina.tsx) |
-| Dirección inexistente | Página "no encontrada" con enlace al inicio | [NoEncontradaPagina.tsx](../src/paginas/NoEncontradaPagina.tsx) |
+| Registro inexistente (404) o id inválido en la dirección | Lleva al inicio, sin mensaje: no confirma qué ids existen | [IrAlInicio.tsx](../src/componentes/comunes/IrAlInicio.tsx), [DetalleEquipoPagina.tsx](../src/paginas/DetalleEquipoPagina.tsx) |
+| Dirección inexistente | Lleva al inicio | [rutas.tsx](../src/rutas.tsx) |
 | Error inesperado al dibujar una pantalla | "Algo salió mal", con recargar o volver al inicio, sin perder el menú | [ErrorRutaPagina.tsx](../src/paginas/ErrorRutaPagina.tsx), [rutas.tsx:26](../src/rutas.tsx#L26) |
 
 Todos los errores de la API pasan por la clase `ErrorApi` ([error-api.ts:11](../src/api/error-api.ts#L11)), que toma el mensaje en español que arma el backend.

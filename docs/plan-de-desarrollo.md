@@ -856,6 +856,18 @@ Las consultas de la API son públicas y solo la escritura es del Administrador. 
 | Inscripciones | Sí, solo consulta: sin "Inscribir equipo" ni columna de acciones | Sí, con alta, cambio y baja |
 | Torneos y Equipos (ABM) | No figuran en el menú. Sin sesión, la dirección lleva al login y vuelve; con otro rol, a la página principal | Sí |
 
+**Cambio posterior (2026-11-10), direcciones inválidas:** una dirección que no existe (`/no-existe`), un id con formato inválido (`/posiciones/abc/equipos/1`) o un recurso que la API no encuentra (404 en `/posiciones/999/equipos/999`, `/inscripciones/1/<uuid inexistente>`, `/predios/999`, `/fixture/partidos/<uuid inexistente>`) llevan a la página principal, igual que una pantalla sin permiso. Antes se mostraba "Página no encontrada" o el mensaje del backend ("No existe…"). Así la aplicación no confirma qué ids existen: probar direcciones no sirve para adivinarlos. Un error del servidor o sin conexión sigue mostrando el mensaje con "Reintentar".
+
+| Archivo | Cambio |
+|:--|:--|
+| `src/componentes/comunes/IrAlInicio.tsx` | Nuevo: `<Navigate to="/" replace />` |
+| `src/rutas.tsx` | La ruta `*` usa `IrAlInicio` |
+| `src/paginas/DetalleEquipoPagina.tsx`, `PlantelPagina.tsx`, `CanchasPagina.tsx`, `ResultadoPartidoPagina.tsx` | Id inválido o error 4xx de la API: `IrAlInicio` |
+| `src/paginas/NoEncontradaPagina.tsx` | Borrado |
+| `e2e/navegacion-publica.spec.ts` | Test nuevo con las cuatro clases de dirección |
+
+Es una medida de experiencia de uso, no de seguridad: la API sigue respondiendo 404, y los listados públicos ya muestran los torneos y equipos que existen. Lo que protege los datos son los permisos de la API.
+
 **Cambio posterior (2026-11-10):** al principio, con otro rol se mostraba una pantalla "Sin permiso" con un botón para volver al inicio. Se reemplazó por una redirección directa a la página principal (`<Navigate to="/" replace />`) y se borró `SinPermisoPagina.tsx`. Con `replace`, el botón "atrás" del navegador no vuelve a la pantalla prohibida.
 
 Además, al tocar "Salir" se vuelve al inicio. Si se estaba en una pantalla de administración, sin sesión llevaría al login, que es raro justo después de salir.

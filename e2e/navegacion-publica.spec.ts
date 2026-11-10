@@ -47,4 +47,25 @@ test.describe('Navegación pública', () => {
       page.getByRole('heading', { name: 'Iniciar sesión' }),
     ).toBeVisible();
   });
+
+  test('una dirección inexistente, un id inválido o un recurso que no existe llevan al inicio', async ({
+    page,
+  }) => {
+    for (const direccion of [
+      // Ruta que no existe.
+      '/no-existe',
+      // Id con formato inválido.
+      '/posiciones/abc/equipos/1',
+      // Ids con formato válido, pero que no existen: la API responde 404.
+      '/posiciones/999999/equipos/999999',
+      '/inscripciones/1/00000000-0000-0000-0000-000000000000',
+    ]) {
+      // Act
+      await page.goto(direccion);
+
+      // Assert: queda en el inicio, sin ningún mensaje que confirme que no existe.
+      await expect(page).toHaveURL(/\/$/);
+      await expect(page.getByText('no existe')).toHaveCount(0);
+    }
+  });
 });

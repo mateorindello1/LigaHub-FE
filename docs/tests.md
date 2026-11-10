@@ -45,11 +45,11 @@ Para los end-to-end:
 | `componentes/resultado/ListaEventos.test.tsx` | Eventos del partido con minuto, tipo, jugador y equipo; lista vacía; botón para quitar que avisa la posición; solo lectura sin `onQuitar` |
 | `utilidades/utilidades.test.ts` | Marcador calculado a partir de los goles; búsqueda sin tildes; diferencia de gol con signo; esquema del evento (regla del cambio y minuto) |
 
-### End-to-end (5 tests en 4 archivos)
+### End-to-end (6 tests en 4 archivos)
 
 | Archivo | Recorrido |
 |:--|:--|
-| `navegacion-publica.spec.ts` | Sin sesión: Posiciones (listado con filtro) → detalle de un equipo con sus partidos y jugadores. Una pantalla de administración lleva al login |
+| `navegacion-publica.spec.ts` | Sin sesión: Posiciones (listado con filtro) → detalle de un equipo con sus partidos y jugadores. Una pantalla de administración lleva al login. Una dirección inexistente, un id inválido o un recurso que no existe llevan al inicio |
 | `fixture.spec.ts` | **Caso de uso 1**: el Administrador inicia sesión, genera el fixture de Clausura con ida y vuelta (6 fechas, 12 partidos), comprueba que se cerraron las inscripciones y que la tabla tiene los 4 equipos, y lo deshace |
 | `sesion.spec.ts` | La sesión sobrevive a recargar la página (se recupera con la cookie `httpOnly`); ningún token queda al alcance del JavaScript; "Salir" la revoca en la API |
 | `resultado.spec.ts` | **Caso de uso 2**: el Asistente inicia sesión, abre la planilla de un partido programado, marca a los jugadores, agrega un gol (el marcador pasa a 1 - 0), guarda con confirmación, ve el resultado en el fixture y lo anula |
@@ -80,13 +80,14 @@ Los end-to-end no corren en GitHub: necesitan la API y la base de Azure, que sol
 **End-to-end** (`pnpm test:e2e`, con la API y la base de Azure):
 
 ```
-Running 5 tests using 1 worker
-  ok 1 e2e\fixture.spec.ts:25:1 › el Administrador genera el fixture, ve las posiciones y lo deshace (10.7s)
-  ok 2 e2e\navegacion-publica.spec.ts:8:3 › Navegación pública › posiciones → detalle del equipo con sus partidos y jugadores (2.9s)
+Running 6 tests using 1 worker
+  ok 1 e2e\fixture.spec.ts:25:1 › el Administrador genera el fixture, ve las posiciones y lo deshace (11.3s)
+  ok 2 e2e\navegacion-publica.spec.ts:8:3 › Navegación pública › posiciones → detalle del equipo con sus partidos y jugadores (2.7s)
   ok 3 e2e\navegacion-publica.spec.ts:40:3 › Navegación pública › una pantalla de administración lleva al login (1.5s)
-  ok 4 e2e\resultado.spec.ts:23:1 › el Asistente carga un resultado con un gol y lo anula (8.6s)
-  ok 5 e2e\sesion.spec.ts:8:1 › la sesión sobrevive a una recarga, no deja tokens al alcance del JavaScript y "Salir" la revoca (3.4s)
-  5 passed (37.7s)
+  ok 4 e2e\navegacion-publica.spec.ts:51:3 › Navegación pública › una dirección inexistente, un id inválido o un recurso que no existe llevan al inicio (4.7s)
+  ok 5 e2e\resultado.spec.ts:23:1 › el Asistente carga un resultado con un gol y lo anula (8.8s)
+  ok 6 e2e\sesion.spec.ts:8:1 › la sesión sobrevive a una recarga, no deja tokens al alcance del JavaScript y "Salir" la revoca (3.5s)
+  6 passed (34.1s)
 ```
 
 Después de las corridas, la base quedó como el seed: Clausura en inscripción y los partidos de Apertura en sus estados originales.

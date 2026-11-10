@@ -5,7 +5,7 @@ import { RutaProtegida } from './componentes/sesion/RutaProtegida';
 import { Rol } from './modelos/sesion';
 import { ErrorRutaPagina } from './paginas/ErrorRutaPagina';
 import { InicioPagina } from './paginas/InicioPagina';
-import { NoEncontradaPagina } from './paginas/NoEncontradaPagina';
+import { IrAlInicio } from './componentes/comunes/IrAlInicio';
 
 /**
  * Rutas de la aplicación. Todas se dibujan dentro del Layout (en su <Outlet />).
@@ -30,7 +30,7 @@ export const router = createBrowserRouter([
           { index: true, element: <InicioPagina /> },
           {
             // Pantallas de administración: solo el Administrador. Sin sesión llevan al login;
-            // con otro rol muestran "sin permiso".
+            // con otro rol, al inicio.
             element: <RutaProtegida roles={[Rol.Administrador]} />,
             children: [
               {
@@ -146,7 +146,8 @@ export const router = createBrowserRouter([
               Component: (await import('./paginas/LoginPagina')).LoginPagina,
             }),
           },
-          { path: '*', element: <NoEncontradaPagina /> },
+          // Dirección inexistente: al inicio, sin pantalla de "no encontrada".
+          { path: '*', element: <IrAlInicio /> },
         ],
       },
     ],

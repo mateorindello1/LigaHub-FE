@@ -16,7 +16,7 @@ import { IDIOMA } from '../config/textos-syncfusion';
 import { useDetalleEquipo } from '../hooks/posiciones.hooks';
 import type { JugadorDetalle, PartidoDetalle } from '../modelos/posiciones';
 import { formatearFechaHora } from '../utilidades/formato';
-import { NoEncontradaPagina } from './NoEncontradaPagina';
+import { IrAlInicio } from '../componentes/comunes/IrAlInicio';
 
 /**
  * Pantalla de detalle (/posiciones/:torneoId/equipos/:equipoId): el equipo en un torneo.
@@ -37,7 +37,7 @@ export function DetalleEquipoPagina() {
 
   // Con ids inválidos no se muestra la pantalla. El detalle va en un componente aparte porque
   // un hook (useDetalleEquipo) no se puede llamar después de un return condicional.
-  if (!idsValidos) return <NoEncontradaPagina />;
+  if (!idsValidos) return <IrAlInicio />;
   return <DetalleEquipo torneoId={torneoId} equipoId={equipoId} />;
 }
 
@@ -106,17 +106,14 @@ function DetalleEquipo({ torneoId, equipoId }: Props) {
 
   if (isPending) return <Cargando texto="Cargando el equipo…" />;
   if (error) {
-    // Un 404 (el equipo no está inscripto en el torneo) no se arregla reintentando.
-    const reintentable = !(
-      error instanceof ErrorApi && error.esErrorDelCliente
-    );
+    // Un 404 (el equipo no está inscripto en el torneo) no muestra error: lleva al inicio, para no confirmar qué ids existen.
+    if (error instanceof ErrorApi && error.esErrorDelCliente) {
+      return <IrAlInicio />;
+    }
     return (
       <>
         {volver}
-        <MensajeError
-          error={error}
-          onReintentar={reintentable ? () => refetch() : undefined}
-        />
+        <MensajeError error={error} onReintentar={() => refetch()} />
       </>
     );
   }

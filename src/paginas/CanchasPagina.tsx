@@ -26,7 +26,7 @@ import {
 } from '../hooks/predios.hooks';
 import type { Cancha } from '../modelos/predio';
 import type { DatosFormularioCancha } from '../validaciones/predio.validacion';
-import { NoEncontradaPagina } from './NoEncontradaPagina';
+import { IrAlInicio } from '../componentes/comunes/IrAlInicio';
 
 /**
  * Canchas de un predio (/predios/:predioId): CRUD dependiente del predio, solo para el
@@ -36,7 +36,7 @@ export function CanchasPagina() {
   const predioId = Number(useParams().predioId);
   // Con un id inválido no se muestra la pantalla; los hooks van en un componente aparte.
   if (!Number.isInteger(predioId) || predioId <= 0) {
-    return <NoEncontradaPagina />;
+    return <IrAlInicio />;
   }
   return <Canchas predioId={predioId} />;
 }
@@ -106,17 +106,14 @@ function Canchas({ predioId }: { predioId: number }) {
 
   if (isPending) return <Cargando texto="Cargando el predio…" />;
   if (error) {
-    // Un 404 (el predio no existe) no se arregla reintentando.
-    const reintentable = !(
-      error instanceof ErrorApi && error.esErrorDelCliente
-    );
+    // Un 404 (el predio no existe) no muestra error: lleva al inicio, para no confirmar qué ids existen.
+    if (error instanceof ErrorApi && error.esErrorDelCliente) {
+      return <IrAlInicio />;
+    }
     return (
       <>
         {volver}
-        <MensajeError
-          error={error}
-          onReintentar={reintentable ? () => refetch() : undefined}
-        />
+        <MensajeError error={error} onReintentar={() => refetch()} />
       </>
     );
   }

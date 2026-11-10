@@ -35,7 +35,7 @@ import type {
 import { formatearFechaHora } from '../utilidades/formato';
 import { calcularMarcador, type Marcador } from '../utilidades/marcador';
 import type { DatosFormularioEvento } from '../validaciones/evento.validacion';
-import { NoEncontradaPagina } from './NoEncontradaPagina';
+import { IrAlInicio } from '../componentes/comunes/IrAlInicio';
 
 const PATRON_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -63,7 +63,7 @@ const ESTADO_DE_TIPO: Record<Tipo, EstadoPartido> = {
  */
 export function ResultadoPartidoPagina() {
   const partidoId = useParams().partidoId ?? '';
-  if (!PATRON_UUID.test(partidoId)) return <NoEncontradaPagina />;
+  if (!PATRON_UUID.test(partidoId)) return <IrAlInicio />;
   return <CargaResultado partidoId={partidoId} />;
 }
 
@@ -73,15 +73,11 @@ function CargaResultado({ partidoId }: { partidoId: string }) {
 
   if (isPending) return <Cargando texto="Cargando la planilla…" />;
   if (error) {
-    const reintentable = !(
-      error instanceof ErrorApi && error.esErrorDelCliente
-    );
-    return (
-      <MensajeError
-        error={error}
-        onReintentar={reintentable ? () => refetch() : undefined}
-      />
-    );
+    // Un 404 (el partido no existe) no muestra error: lleva al inicio, para no confirmar qué ids existen.
+    if (error instanceof ErrorApi && error.esErrorDelCliente) {
+      return <IrAlInicio />;
+    }
+    return <MensajeError error={error} onReintentar={() => refetch()} />;
   }
   // key: si cambia el estado guardado (por ejemplo, después de anular), el editor arranca de nuevo.
   return (

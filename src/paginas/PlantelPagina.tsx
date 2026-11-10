@@ -34,7 +34,7 @@ import type { InscripcionJugador } from '../modelos/inscripcion-jugador';
 import { nombreJugador } from '../modelos/jugador';
 import { Rol } from '../modelos/sesion';
 import type { DatosFormularioInscripcionJugador } from '../validaciones/inscripcion-jugador.validacion';
-import { NoEncontradaPagina } from './NoEncontradaPagina';
+import { IrAlInicio } from '../componentes/comunes/IrAlInicio';
 
 /** Formato de los UUID que genera la base para las inscripciones. */
 const PATRON_UUID =
@@ -56,7 +56,7 @@ export function PlantelPagina() {
     PATRON_UUID.test(inscripcionId);
 
   // Igual que en el detalle del equipo: los hooks van en un componente aparte, con los ids válidos.
-  if (!idsValidos) return <NoEncontradaPagina />;
+  if (!idsValidos) return <IrAlInicio />;
   return <Plantel torneoId={torneoId} inscripcionId={inscripcionId} />;
 }
 
@@ -167,19 +167,18 @@ function Plantel({ torneoId, inscripcionId }: Props) {
     return <Cargando texto="Cargando el plantel…" />;
   }
   if (consultaInscripcion.error) {
-    // Un 404 (la inscripción no existe en ese torneo) no se arregla reintentando.
+    // Un 404 (la inscripción no existe en ese torneo) no muestra error: lleva al inicio, para no
+    // confirmar qué ids existen.
     const error = consultaInscripcion.error;
-    const reintentable = !(
-      error instanceof ErrorApi && error.esErrorDelCliente
-    );
+    if (error instanceof ErrorApi && error.esErrorDelCliente) {
+      return <IrAlInicio />;
+    }
     return (
       <>
         {volver}
         <MensajeError
           error={error}
-          onReintentar={
-            reintentable ? () => consultaInscripcion.refetch() : undefined
-          }
+          onReintentar={() => consultaInscripcion.refetch()}
         />
       </>
     );
