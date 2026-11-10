@@ -960,7 +960,7 @@ En el navegador, con el Administrador del seed, contra la API en Azure:
 
 ## Etapa 11 — Aprobación directa
 
-**Estado:** En curso (AD-1, en el backend, y AD-2 a AD-4 hechas)
+**Estado:** En curso (AD-1, en el backend, y AD-2 a AD-5 hechas)
 
 Subetapas con la misma numeración en los planes del backend y del frontend. Requiere la etapa de seguridad: los endpoints y pantallas nuevos se protegen por rol desde el principio. El orden tiene un motivo:
 - **AD-1 se adelantó:** es un requisito de regularidad.
@@ -973,7 +973,7 @@ Subetapas con la misma numeración en los planes del backend y del frontend. Req
 | AD-2 | CRUD de Jugador e Inscripción de jugador | Sí | Sí | Hecha |
 | AD-3 | CRUD de Predio y Cancha, y asignar cancha y horario a los partidos | Sí | Sí | Hecha |
 | AD-4 | Caso de uso: cargar el resultado de un partido | Sí | Sí | Hecha |
-| AD-5 | Tests que faltan | Sí | Sí | Pendiente |
+| AD-5 | Tests que faltan | Sí | Sí | Hecha |
 | AD-6 | Ambientes y deploy | Sí | Sí | Pendiente |
 
 ### AD-2 — Jugadores, planteles y "Mis datos"
@@ -1254,8 +1254,109 @@ En el navegador, como **Asistente** y contra la API en Azure, sobre Atlético No
 
 ### AD-5 — Tests
 
-- Un test unitario de componente (Vitest con Testing Library).
-- Un test end-to-end (Playwright) de un recorrido completo, por ejemplo: login → generar fixture → ver posiciones.
+**Estado:** Hecha (2026-11-10)
+
+**Qué pide la cátedra en el frontend** para la aprobación directa: un test unitario de componente y un test end-to-end. Para la documentación de aprobación pide además la evidencia de ejecución de los tests.
+
+Lo que se hizo:
+- **21 tests de componentes y unitarios** con Vitest y Testing Library.
+- **4 tests end-to-end** con Playwright, incluidos los dos casos de uso de punta a punta.
+- **Integración continua** en GitHub Actions.
+- **Documentación** en [`docs/tests.md`](tests.md).
+
+#### Instalación
+
+```bash
+pnpm add -D vitest @vitest/coverage-v8 jsdom @testing-library/react @testing-library/user-event @testing-library/jest-dom @playwright/test dotenv
+```
+
+| Paquete | Para qué |
+|:--|:--|
+| `vitest`, `@vitest/coverage-v8` | Ejecutor de tests (el mismo que en el backend) y cobertura |
+| `jsdom` | DOM simulado en Node: los componentes se dibujan sin abrir un navegador |
+| `@testing-library/react`, `user-event`, `jest-dom` | Dibujar componentes, usarlos como una persona (escribir, hacer clic) y comparadores como `toBeInTheDocument` |
+| `@playwright/test` | Tests end-to-end en un navegador real |
+| `dotenv` | Que la configuración de Playwright lea la contraseña de los usuarios de prueba desde un `.env` |
+
+**Sin descargar navegadores:** Playwright usa el Microsoft Edge instalado (`channel: 'msedge'`). Así no hace falta `playwright install`, que descarga sus propios navegadores (cientos de MB).
+
+#### Tests de componentes
+
+| Archivo | Qué prueba |
+|:--|:--|
+| `FormularioTorneo.test.tsx` | El formulario con los campos reales de Syncfusion: validación sin enviar, `onGuardar` con los datos limpios (output property), carga del torneo recibido (input property), error 409 del backend dentro del formulario, `onCancelar` |
+| `RutaProtegida.test.tsx` | Protección de rutas por rol con un router en memoria y una sesión simulada: login, "Sin permiso" o la pantalla |
+| `PlantelPartido.test.tsx` | Casillas "jugó" (CheckBox de Syncfusion): conteo, aviso de cada cambio, "Todos" y "Ninguno", deshabilitado |
+| `ListaEventos.test.tsx` | Lista de eventos: contenido, lista vacía, botón de quitar que avisa la posición, solo lectura |
+| `utilidades.test.ts` | Marcador, búsqueda sin tildes, diferencia de gol y el esquema de Zod del evento |
+
+#### Tests end-to-end
+
+| Archivo | Recorrido |
+|:--|:--|
+| `navegacion-publica.spec.ts` | Sin sesión: posiciones → detalle de un equipo; una pantalla de administración lleva al login |
+| `fixture.spec.ts` | Caso de uso 1: el Administrador genera el fixture de Clausura, verifica las inscripciones cerradas y la tabla, y lo deshace |
+| `resultado.spec.ts` | Caso de uso 2: el Asistente carga un gol en un partido, guarda, ve el 1 - 0 en el fixture y lo anula |
+
+`playwright.config.ts`:
+- Levanta el frontend y la API (`../LigaHub-BE`) si no están corriendo, y si ya lo están los reutiliza.
+- Corre los tests de a uno.
+- Genera un reporte HTML.
+- Guarda captura y traza paso a paso de los tests que fallan.
+
+La contraseña de los usuarios del seed sale de `E2E_CONTRASENIA` (`.env` del frontend, documentada en `.env.example`) o de `SEED_CONTRASENIA` del backend; nunca está en el código. Los tests que modifican datos los restauran en `afterEach`.
+
+#### Problemas encontrados
+
+- **Aviso de licencia de Syncfusion en los tests:** sin clave, Syncfusion agrega al `body` un aviso con su propio botón de cerrar. El test "sin botones" lo encontraba. Se resolvió buscando solo dentro del componente dibujado (`within(container)`).
+- **Elementos repetidos en Playwright:** Playwright exige que un localizador encuentre un solo elemento ("strict mode").
+  - El email de la sesión aparecía en la barra y en el aviso de bienvenida: se busca en `.menu-sesion__email`.
+  - "Posiciones" estaba en el menú y en las tarjetas del inicio: se busca dentro de la navegación principal.
+- **La lista de jugadores no se elegía con el mouse:** dentro de la ventana de evento, el clic en la lista llevaba el foco a "Tipo de evento" y el jugador quedaba vacío. Se elige con el teclado: foco en el campo y flecha abajo, como lo haría una persona sin mouse. Después se verifica el valor elegido.
+- **La limpieza no corría si el test se pasaba del tiempo:** con la limpieza en un `finally`, Playwright cerraba el contexto antes de ejecutarla. Se pasó a `afterEach`, que tiene su propio tiempo. Antes de corregirlo se verificó que el partido había quedado programado.
+- **Imports en los tests end-to-end:** `tsconfig.node.json` (que ahora incluye las configuraciones y `e2e/`) usa resolución `nodenext`, que exige la extensión. Se importa `./ayudantes.js`, que TypeScript y Playwright resuelven al `.ts`.
+
+#### Integración continua
+
+`.github/workflows/tests.yml` corre en GitHub en cada push y pull request a `main`:
+1. Instala las dependencias.
+2. Corre el lint.
+3. Compila.
+4. Ejecuta los tests de componentes con cobertura.
+5. Guarda el reporte como artefacto.
+
+Los end-to-end no corren en GitHub: necesitan la API y la base de Azure, que solo acepta las IP habilitadas en su firewall. Se simularon los mismos pasos en una copia limpia del repositorio (sin `node_modules` ni `.env`), y todos pasaron. El README muestra el estado del workflow con un badge.
+
+#### Archivos
+
+| Archivo | Qué es |
+|:--|:--|
+| `vitest.config.ts` | Nuevo: Vitest con jsdom, sobre la configuración de Vite |
+| `src/test/preparacion.ts` | Nuevo: comparadores de jest-dom, limpieza después de cada test y `matchMedia` simulado para Syncfusion |
+| `src/**/*.test.ts(x)` | Nuevos: 5 archivos de tests |
+| `playwright.config.ts` | Nuevo: Edge, servidores, reporte y contraseña de prueba |
+| `e2e/ayudantes.ts`, `e2e/*.spec.ts` | Nuevos: inicio de sesión, limpieza por la API y 3 archivos de tests |
+| `package.json` | Scripts `test`, `test:watch`, `test:cov` y `test:e2e`; `format` incluye `e2e/` |
+| `tsconfig.node.json` | Incluye las configuraciones de los tests y `e2e/` |
+| `.env.example` | `E2E_CONTRASENIA` (opcional) |
+| `.gitignore` | `playwright-report/`, `test-results/` y `coverage/` |
+| `.github/workflows/tests.yml` | Nuevo: integración continua |
+| `docs/tests.md` | Nuevo: cómo correr los tests, qué cubren y evidencia de ejecución |
+| `README.md` | Badge del workflow, sección Tests, stack y scripts |
+
+#### Conceptos
+
+- **Test de componente:** se dibuja el componente con `render` y se lo usa como una persona: se buscan los elementos por su rol o su etiqueta (`getByRole('button', { name: 'Guardar' })`, `getByLabelText('Nombre')`), no por clases CSS. Si el test encuentra un botón por su nombre, también lo encuentra un lector de pantalla. Es bUnit en Blazor.
+- **Funciones simuladas (`vi.fn()`):** reemplazan las output properties para verificar que el componente avisó, con qué datos y cuántas veces. Es `Mock<EventCallback>` o un delegado que registra las llamadas.
+- **Test end-to-end:** Playwright maneja un navegador real contra la aplicación completa. Espera solo a que cada elemento esté visible y estable antes de usarlo, así que no hace falta poner pausas. Lento comparado con un unitario, pero es el único que prueba que todo funciona junto: el frontend, la API, la base y el navegador.
+- **Pirámide de tests:** muchos unitarios (rápidos, precisos), menos de integración y pocos end-to-end (lentos, frágiles, pero los más realistas). LigaHub tiene 127 unitarios y de componentes en los dos repos, 22 de integración y 4 end-to-end.
+
+#### Cómo se probó
+
+- **Componentes:** pasan los 21 (`pnpm test`).
+- **End-to-end:** pasan los 4 en tres corridas seguidas, contra Azure. Después, la base quedó como el seed.
+- **Calidad:** lint y compilación sin errores, incluidas las configuraciones y los tests end-to-end.
+- **Workflow:** simulado en una copia limpia.
 
 ### AD-6 — Ambientes y deploy
 

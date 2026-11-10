@@ -30,3 +30,8 @@ dist-ssr
 
 # Obsidian (configuración local del visor de docs)
 .obsidian/
+
+# Resultados de los tests (reporte de Playwright, capturas y cobertura)
+playwright-report/
+test-results/
+coverage/
