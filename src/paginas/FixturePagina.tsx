@@ -63,10 +63,15 @@ export function FixturePagina() {
   const cantidadEquipos = inscripciones?.length ?? 0;
   const puedeGenerar = enInscripcion && fechas !== undefined && !tieneFixture;
   // Generar y deshacer el fixture es solo del Administrador; los demás lo consultan.
-  const esAdministrador = useSesion().tieneRol(Rol.Administrador);
+  const { tieneRol } = useSesion();
+  const esAdministrador = tieneRol(Rol.Administrador);
   // Programar partidos: el Administrador, mientras el torneo no haya terminado.
   const puedeProgramar =
     esAdministrador && torneo?.estadoTorneo !== EstadoTorneo.Finalizado;
+  // Cargar resultados: el Asistente y el Administrador, con el torneo en curso.
+  const puedeCargarResultados =
+    tieneRol(Rol.Asistente, Rol.Administrador) &&
+    torneo?.estadoTorneo === EstadoTorneo.EnCurso;
   // #endregion
 
   // #region Acciones
@@ -206,6 +211,7 @@ export function FixturePagina() {
                   key={fecha.id}
                   fecha={fecha}
                   onProgramar={puedeProgramar ? setAProgramar : undefined}
+                  conResultado={puedeCargarResultados}
                 />
               ))}
             </div>

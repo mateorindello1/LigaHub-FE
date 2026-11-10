@@ -2,7 +2,7 @@ import { entorno } from '../config/entorno';
 import { ErrorApi } from './error-api';
 import { sesionGuardada } from './sesion-guardada';
 
-type Metodo = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+type Metodo = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
 /**
  * Hace un pedido a la API y devuelve el cuerpo de la respuesta ya convertido desde JSON.
@@ -68,5 +68,6 @@ export const clienteApi = {
     pedir<T>('GET', ruta, undefined, signal),
   post: <T>(ruta: string, cuerpo?: unknown) => pedir<T>('POST', ruta, cuerpo),
   patch: <T>(ruta: string, cuerpo: unknown) => pedir<T>('PATCH', ruta, cuerpo),
+  put: <T>(ruta: string, cuerpo: unknown) => pedir<T>('PUT', ruta, cuerpo),
   delete: (ruta: string) => pedir<void>('DELETE', ruta),
 };

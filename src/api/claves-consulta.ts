@@ -22,6 +22,7 @@ export const clavesConsulta = {
   equipo: (id: number) => ['equipos', id] as const,
   usuarios: ['usuarios'] as const,
   predios: ['predios'] as const,
+  partido: (id: string) => ['partidos', id] as const,
   predio: (id: number) => ['predios', id] as const,
   jugadores: ['jugadores'] as const,
   jugadoresDisponibles: (torneoId: number) =>

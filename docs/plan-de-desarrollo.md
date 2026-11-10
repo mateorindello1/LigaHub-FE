@@ -960,7 +960,7 @@ En el navegador, con el Administrador del seed, contra la API en Azure:
 
 ## Etapa 11 — Aprobación directa
 
-**Estado:** En curso (AD-1, en el backend, AD-2 y AD-3 hechas)
+**Estado:** En curso (AD-1, en el backend, y AD-2 a AD-4 hechas)
 
 Subetapas con la misma numeración en los planes del backend y del frontend. Requiere la etapa de seguridad: los endpoints y pantallas nuevos se protegen por rol desde el principio. El orden tiene un motivo:
 - **AD-1 se adelantó:** es un requisito de regularidad.
@@ -972,7 +972,7 @@ Subetapas con la misma numeración en los planes del backend y del frontend. Req
 | AD-1 | Base de datos en la nube (Azure SQL). **También es requisito de regularidad** | Sí | No | Hecha |
 | AD-2 | CRUD de Jugador e Inscripción de jugador | Sí | Sí | Hecha |
 | AD-3 | CRUD de Predio y Cancha, y asignar cancha y horario a los partidos | Sí | Sí | Hecha |
-| AD-4 | Caso de uso: cargar el resultado de un partido | Sí | Sí | Pendiente |
+| AD-4 | Caso de uso: cargar el resultado de un partido | Sí | Sí | Hecha |
 | AD-5 | Tests que faltan | Sí | Sí | Pendiente |
 | AD-6 | Ambientes y deploy | Sí | Sí | Pendiente |
 
@@ -1169,8 +1169,88 @@ En el navegador, como Administrador y contra la API en Azure.
 
 ### AD-4 — Pantalla para cargar el resultado
 
-- Desde el fixture, elegir un partido y cargar los jugadores y los eventos (gol, tarjetas, cambios).
-- Ver el resultado calculado antes de confirmar.
+**Estado:** Hecha (2026-11-10)
+
+#### Qué se ve
+
+En el **fixture**, el Asistente y el Administrador ven en cada partido (con el torneo en curso) el enlace "Cargar resultado", o "Corregir resultado" si ya tiene uno. Lleva a la **planilla del partido** (`/fixture/partidos/:partidoId`), protegida para esos dos roles.
+
+La planilla tiene:
+- **Encabezado:** torneo, número de fecha, día y hora, cancha, y "Volver al fixture".
+- **Marcador grande** con los escudos. Se recalcula mientras se cargan los goles.
+- **"¿Qué pasó?":** Se jugó, Ganó por W.O. o Se suspendió.
+  - **W.O.:** se elige qué equipo se presentó; el marcador muestra 3 a 0.
+  - **Se jugó:**
+    - **Quiénes jugaron:** el plantel de cada equipo con una casilla por jugador ("10 · Díaz, Matías (C)"), con los botones "Todos" y "Ninguno". Lado a lado desde 768 px.
+    - **Eventos:** "Agregar evento" abre una ventana con tipo, minuto, jugador (de los que jugaron, agrupados por equipo y con buscador) y, en un cambio, el jugador que entra (solo compañeros). La lista muestra cada evento con su minuto, un badge por tipo y un botón para quitarlo.
+    - **Desmarcar a un jugador** quita sus eventos y lo avisa.
+- **"Guardar resultado":** pide confirmación con el resultado calculado ("¿Guardar el resultado? Atlético Norte 1 - 2 Los Halcones. Jugaron 13 jugadores y hay 4 eventos."). Al guardar vuelve al fixture.
+- **"Anular resultado":** si el partido ya tenía uno.
+- **Avisos:**
+  - Si el torneo está finalizado, la planilla es solo de lectura.
+  - Si el resultado guardado no tiene planilla (un marcador cargado sin jugadores ni eventos), se avisa que al guardar el marcador se recalcula. Desde que el seed incluye las planillas (ver el plan del backend), los partidos de prueba ya no lo muestran.
+
+#### Archivos
+
+| Archivo | Qué es |
+|:--|:--|
+| `src/modelos/partido.ts` | Nuevo: `TipoEvento`, la planilla y `CargarResultado` |
+| `src/utilidades/marcador.ts` | Nuevo: `calcularMarcador`, igual que en el backend |
+| `src/servicios/partidos.servicio.ts` | `obtenerPlanilla`, `cargarResultado` y `anularResultado` |
+| `src/api/cliente-api.ts` | Método `put` |
+| `src/api/claves-consulta.ts` | Clave `partido` |
+| `src/hooks/resultados.hooks.ts` | Nuevo: `usePlanilla`, `useCargarResultado` y `useAnularResultado` |
+| `src/validaciones/evento.validacion.ts` | Nuevo: esquema del evento, con la regla del cambio en `superRefine` |
+| `src/componentes/resultado/FormularioEvento.tsx` | Nuevo: alta de un evento |
+| `src/componentes/resultado/PlantelPartido.tsx` | Nuevo: plantel con casillas "jugó" |
+| `src/componentes/resultado/ListaEventos.tsx` | Nuevo: eventos por minuto |
+| `src/componentes/resultado/MarcadorPartido.tsx` | Nuevo: marcador con escudos |
+| `src/paginas/ResultadoPartidoPagina.tsx` | Nueva: la planilla |
+| `src/componentes/fixture/TarjetaFecha.tsx`, `src/paginas/FixturePagina.tsx` | Enlace a la planilla para el Asistente y el Administrador |
+| `src/componentes/comunes/DialogoConfirmacion.tsx` | Opción `peligroso={false}`: botón principal en lugar de rojo |
+| `src/rutas.tsx` | `/fixture/partidos/:partidoId` dentro de una `RutaProtegida` para Asistente y Administrador |
+| `src/index.css` | Marcador, planteles, lista de eventos y pie de la planilla |
+
+#### Conceptos
+
+- **Estado de edición local y una sola llamada al guardar:**
+  - Quiénes jugaron (un `Set`), los eventos (un arreglo), qué pasó y el ganador del W.O. viven en `useState` del editor, como los campos de un ViewModel de edición.
+  - Agregar o quitar eventos no llama a la API: todo se envía junto con un `PUT` al confirmar.
+  - No se usa React Hook Form para la planilla entera porque es una lista dinámica; sí para el formulario de cada evento.
+- **Inicializar el estado desde los datos:** `CargaResultado` espera la planilla y recién entonces dibuja `EditorPlanilla`, que arma su estado inicial con lo guardado. El `key` con el id y el estado hace que, después de anular, el editor arranque de nuevo. Es como inicializar el ViewModel en `OnParametersSet` cuando llegan los datos.
+- **Valores calculados con `useMemo`:** el marcador, las opciones de jugadores y el mapa de nombres se recalculan solo cuando cambia lo que usan. Son como propiedades calculadas del ViewModel.
+- **Opciones que dependen de otro campo:** en el formulario de evento, `useWatch` sobre el jugador que sale filtra la lista del que entra (mismo equipo y otro jugador). El `key` recrea la lista de Syncfusion cuando cambian sus opciones.
+- **Errores de un 400 anidado:** si el backend rechaza un evento, el aviso agrega el detalle del campo (`eventos.2...`). El editor ya valida lo mismo antes de enviar, así que en el uso normal no aparece.
+
+#### Cómo se probó
+
+En el navegador, como **Asistente** y contra la API en Azure, sobre Atlético Norte vs Los Halcones (fecha 4 de Apertura).
+
+**Menú y fixture:**
+- El menú del Asistente no muestra pantallas de administración.
+- El fixture muestra 15 enlaces de resultado y ningún "Programar".
+
+**Carga:**
+- "Todos" en los dos planteles: 7 de 7 y 7 de 7.
+- Se agregaron cinco eventos con el formulario: gol, gol, amonestación, gol en contra de un jugador de Atlético Norte y un cambio. El marcador en vivo quedó 1 - 2, porque el gol en contra suma al rival.
+- En un cambio, la lista "Entra" ofrece solo los 6 compañeros del que sale. Sin elegirlo, muestra "Elegí el jugador que entra.".
+- Desmarcar al jugador amonestado quitó su evento y mostró el aviso. Quedaron 13 jugadores y 4 eventos.
+
+**Guardado:**
+- La confirmación mostró "Atlético Norte 1 - 2 Los Halcones. Jugaron 13 jugadores y hay 4 eventos.".
+- Al guardar volvió al fixture con el 1 - 2, y la tabla pasó de 0 a 3 puntos para Los Halcones.
+
+**Corrección:**
+- "Corregir resultado" recargó la planilla guardada (7 y 6 jugadores, 4 eventos, 1 - 2).
+- Al pasar a W.O. sin elegir ganador, avisa "Elegí qué equipo se presentó.".
+- Con Los Halcones, el marcador muestra 0 - 3 y la confirmación dice "Reemplaza el resultado cargado antes."; el fixture muestra 0 - 3 con el badge W.O.
+
+**Anulación:** el partido vuelve a Programado, sin jugadores ni eventos, y la tabla a sus valores originales.
+
+**Otros chequeos:**
+- **Partido del seed (fecha 1):** antes de ampliar el seed, mostraba el aviso de resultado sin planilla. Con el seed nuevo, Atlético Norte 4 - 1 Unión Barrial muestra 8 y 9 jugadores y 11 eventos, sin el aviso.
+- **Celular (375 px):** marcador, opciones y planteles en una columna.
+- **Consola:** sin errores.
 
 ### AD-5 — Tests
 

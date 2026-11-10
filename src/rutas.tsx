@@ -78,6 +78,21 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            // Carga de resultados: el Asistente (el día del partido) y el Administrador.
+            element: (
+              <RutaProtegida roles={[Rol.Asistente, Rol.Administrador]} />
+            ),
+            children: [
+              {
+                path: 'fixture/partidos/:partidoId',
+                lazy: async () => ({
+                  Component: (await import('./paginas/ResultadoPartidoPagina'))
+                    .ResultadoPartidoPagina,
+                }),
+              },
+            ],
+          },
+          {
             // Datos propios del jugador: solo el rol Jugador (permiso por pertenencia).
             element: <RutaProtegida roles={[Rol.Jugador]} />,
             children: [

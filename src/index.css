@@ -314,6 +314,138 @@ h1 {
 }
 /* #endregion */
 
+/* #region Resultado del partido */
+.marcador-partido {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 16px;
+  border-radius: 8px;
+  background: rgb(var(--color-sf-surface-variant));
+}
+
+.marcador-partido__equipo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.marcador-partido__goles {
+  font-size: 2rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.planilla__tipo {
+  margin-bottom: 16px;
+}
+
+.planilla__titulo {
+  margin: 24px 0 12px;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+/* Planteles uno debajo del otro en celular y lado a lado desde MD. */
+.planilla__planteles {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .planilla__planteles {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.plantel-partido {
+  padding: 12px 16px;
+  border: 1px solid rgb(var(--color-sf-outline-variant));
+  border-radius: 8px;
+}
+
+.plantel-partido__encabezado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.plantel-partido__encabezado h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.plantel-partido__acciones {
+  display: flex;
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.plantel-partido__lista {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.planilla__encabezado-eventos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lista-eventos {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista-eventos__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgb(var(--color-sf-outline-variant));
+}
+
+.lista-eventos__minuto {
+  min-width: 2.5em;
+  font-weight: 500;
+  text-align: right;
+}
+
+.lista-eventos__detalle {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.planilla__pie {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.partido__resultado {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+/* #endregion */
+
 /* #region Mis datos (rol Jugador) */
 .mis-datos {
   display: grid;

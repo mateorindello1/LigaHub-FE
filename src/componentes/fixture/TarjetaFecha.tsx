@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { ButtonComponent } from '@syncfusion/ej2-react-buttons';
 import { EstadoPartido, NOMBRES_ESTADO_PARTIDO } from '../../modelos/estados';
 import type { FechaFixture, PartidoFixture } from '../../modelos/fixture';
@@ -16,6 +17,8 @@ interface Props {
    * botón: solo el Administrador programa partidos.
    */
   onProgramar?: (partido: PartidoFixture) => void;
+  /** Muestra el enlace a la planilla para cargar o corregir el resultado (Asistente y Administrador). */
+  conResultado?: boolean;
 }
 
 /** Estados en los que un partido todavía se puede programar (no se jugó). */
@@ -25,7 +28,11 @@ const PROGRAMABLES: EstadoPartido[] = [
 ];
 
 /** Una fecha del fixture como tarjeta: sus partidos y el equipo libre, si lo hay. */
-export function TarjetaFecha({ fecha, onProgramar }: Props) {
+export function TarjetaFecha({
+  fecha,
+  onProgramar,
+  conResultado = false,
+}: Props) {
   return (
     <article className="e-card tarjeta-fecha">
       <div className="e-card-header">
@@ -43,6 +50,7 @@ export function TarjetaFecha({ fecha, onProgramar }: Props) {
                 ? () => onProgramar(partido)
                 : undefined
             }
+            conResultado={conResultado}
           />
         ))}
       </ul>
@@ -59,9 +67,11 @@ export function TarjetaFecha({ fecha, onProgramar }: Props) {
 function FilaPartido({
   partido,
   onProgramar,
+  conResultado,
 }: {
   partido: PartidoFixture;
   onProgramar?: () => void;
+  conResultado: boolean;
 }) {
   const jugado = partido.golesLocal !== null && partido.golesVisitante !== null;
   const colorEstado = COLOR_ESTADO[partido.estadoPartido];
@@ -97,6 +107,16 @@ function FilaPartido({
           >
             Programar
           </ButtonComponent>
+        )}
+        {conResultado && (
+          <Link
+            className="e-btn e-flat e-small partido__resultado"
+            to={`/fixture/partidos/${partido.id}`}
+            aria-label={`Resultado de ${partido.local.nombre} vs ${partido.visitante.nombre}`}
+          >
+            <span className="e-icons e-edit" aria-hidden="true" />
+            {jugado ? 'Corregir resultado' : 'Cargar resultado'}
+          </Link>
         )}
       </div>
     </li>
