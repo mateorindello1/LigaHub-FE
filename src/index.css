@@ -248,6 +248,51 @@ h1 {
   align-items: center;
   gap: 12px;
 }
+
+.celda-usuario {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.celda-usuario__vos,
+.celda-usuario__jugador {
+  color: rgb(var(--color-sf-on-surface-variant));
+}
+
+.celda-usuario__jugador {
+  font-size: 0.875em;
+}
+
+.badges-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+/* #endregion */
+
+/* #region Gestión de usuarios */
+/* Fieldset sin el borde ni el relleno del navegador; el margen es el de .campo. */
+.campo-roles {
+  border: none;
+  margin-inline: 0;
+  padding: 0;
+  min-inline-size: 0;
+}
+
+.campo-roles legend {
+  margin-bottom: 4px;
+  font-size: 0.875em;
+  color: rgb(var(--color-sf-on-surface-variant));
+}
+
+.campo-roles__opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
 /* #endregion */
 
 /* #region Posiciones y detalle de equipo */

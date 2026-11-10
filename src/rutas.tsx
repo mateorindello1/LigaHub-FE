@@ -47,6 +47,13 @@ export const router = createBrowserRouter([
                     .EquiposPagina,
                 }),
               },
+              {
+                path: 'usuarios',
+                lazy: async () => ({
+                  Component: (await import('./paginas/UsuariosPagina'))
+                    .UsuariosPagina,
+                }),
+              },
             ],
           },
           {

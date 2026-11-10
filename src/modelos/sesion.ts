@@ -22,6 +22,8 @@ export interface UsuarioSesion {
   fotoPerfilURL: string | null;
   /** Jugador asociado (solo para usuarios con rol Jugador). */
   jugadorId: number | null;
+  /** Nombre del jugador asociado, o null si no tiene. */
+  jugador: { id: number; nombres: string; apellidos: string } | null;
   roles: Rol[];
 }
 

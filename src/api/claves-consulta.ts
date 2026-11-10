@@ -16,4 +16,6 @@ export const clavesConsulta = {
   fixture: (torneoId: number) => ['torneos', torneoId, 'fixture'] as const,
   equipos: ['equipos'] as const,
   equipo: (id: number) => ['equipos', id] as const,
+  usuarios: ['usuarios'] as const,
+  jugadores: ['jugadores'] as const,
 };

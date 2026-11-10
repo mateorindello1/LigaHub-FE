@@ -22,7 +22,7 @@ El plan del backend está en [LigaHub-BE/docs/plan-de-desarrollo.md](https://git
 | 7 | [Caso de uso: generar el fixture](#etapa-7--caso-de-uso-generar-el-fixture) | Hecha |
 | 8 | [Revisión de requisitos de la cátedra](#etapa-8--revisión-de-requisitos-de-la-cátedra) | Hecha |
 | 9 | [Documentación y proposal](#etapa-9--documentación-y-proposal) | Pendiente |
-| 10 | [Seguridad: login y permisos (S-1 a S-6)](#etapa-10--seguridad-login-y-permisos) | En curso |
+| 10 | [Seguridad: login y permisos (S-1 a S-6)](#etapa-10--seguridad-login-y-permisos) | Hecha |
 | 11 | [Aprobación directa (AD-1 a AD-6)](#etapa-11--aprobación-directa) | En curso |
 
 ---
@@ -753,7 +753,7 @@ La verificación completa, requisito por requisito y con enlaces al archivo y la
 
 ## Etapa 10 — Seguridad: login y permisos
 
-**Estado:** En curso (S-1 a S-5 hechas; falta S-6)
+**Estado:** Hecha (2026-11-10)
 
 Login y permisos por rol. La cátedra los pide para la aprobación directa, pero se hacen como etapa propia y **antes** del resto de la aprobación directa: así los endpoints y pantallas nuevos (jugadores, canchas, carga de resultados) nacen protegidos y no hay que volver sobre ellos. Los decoradores `@Publico()` y `@Roles(...)` ya están en todos los endpoints desde la etapa 4; esta etapa los activa.
 
@@ -766,7 +766,7 @@ El diseño (mecanismo, roles, permisos y medidas) está decidido en [seguridad.m
 | S-3 | Protección de la API: guard global, guard de roles, mensajes 401 y 403, Swagger con token | Sí | No | Hecha |
 | S-4 | Login, sesión y envío del token desde el cliente de API | No | Sí | Hecha |
 | S-5 | Pantallas, menú y acciones según el rol; sesión vencida (401) y sin permiso (403) | No | Sí | Hecha |
-| S-6 | Gestión de usuarios y roles por el administrador | Sí | Sí | Pendiente |
+| S-6 | Gestión de usuarios y roles por el administrador | Sí | Sí | Hecha |
 
 ### S-4 — Login y sesión
 
@@ -891,7 +891,72 @@ En el navegador, contra la API con los usuarios del seed:
 
 ### S-6 — Gestión de usuarios (frontend)
 
-- Pantalla de usuarios para el Administrador: grilla, alta y modificación con los roles, y cambio de contraseña.
+**Estado:** Hecha (2026-11-10)
+
+#### Qué se ve
+
+Pantalla **Usuarios** (`/usuarios`), solo para el Administrador: figura en el menú solo para ese rol y está protegida igual que Torneos y Equipos.
+
+- **Grilla:**
+  - Columnas: email, roles como badges de color y jugador asociado.
+  - Tu propia fila dice "(vos)" y no tiene botón de borrar, porque el backend tampoco lo permite.
+  - En celular, las columnas de roles y jugador se ocultan y esos datos pasan debajo del email.
+- **Acciones de cada fila:** modificar (lápiz), cambiar contraseña (candado) y borrar (con confirmación).
+- **Alta y modificación** en una ventana modal:
+  - Email.
+  - Contraseña, solo en el alta y de al menos 12 caracteres.
+  - Una casilla por rol.
+  - La lista "Jugador asociado" aparece solo con el rol Jugador marcado. Muestra los jugadores sin usuario y el del propio usuario.
+  - Si se desmarca el rol Jugador, se envía `jugadorId: null` y el jugador queda desasociado.
+- **Cambio de contraseña:** contraseña nueva y su repetición. Tienen que coincidir.
+- **Errores del backend** que se muestran en el formulario: email repetido, jugador ya asociado y "No podés quitarte el rol de Administrador".
+
+#### Archivos
+
+| Archivo | Qué es |
+|:--|:--|
+| `src/modelos/usuario.ts` | Nuevo: `Usuario`, `CrearUsuario`, `ModificarUsuario`, `CambiarContrasenia`, `JugadorResumen` y `nombreJugador` |
+| `src/servicios/usuarios.servicio.ts`, `jugadores.servicio.ts` | Nuevos: un método por endpoint |
+| `src/hooks/usuarios.hooks.ts` | Nuevo: `useUsuarios`, `useJugadores` y las mutaciones. Invalidan usuarios y jugadores, porque la lista de jugadores muestra cuál ya tiene usuario |
+| `src/validaciones/usuario.validacion.ts` | Nuevo: `crearEsquemaUsuario(esAlta)` y `esquemaContrasenia`, con los mensajes del backend |
+| `src/componentes/usuarios/CampoRoles.tsx` | Nuevo: una casilla por rol, conectadas a un único campo con la lista de roles |
+| `src/componentes/usuarios/BadgesRoles.tsx` | Nuevo: los roles como badges de color |
+| `src/componentes/usuarios/FormularioUsuario.tsx`, `FormularioContrasenia.tsx` | Nuevos: los dos formularios |
+| `src/paginas/UsuariosPagina.tsx` | Nueva: grilla y ventanas modales |
+| `src/rutas.tsx` | `/usuarios` dentro de la `RutaProtegida` del Administrador, con carga diferida |
+| `src/componentes/layout/Layout.tsx` | Opción "Usuarios" en el menú (ícono `e-user`), solo para el Administrador |
+| `src/api/claves-consulta.ts` | Claves `usuarios` y `jugadores` |
+| `src/modelos/sesion.ts` | `UsuarioSesion` incluye `jugador`, que ahora devuelve `/auth/yo` |
+| `src/index.css` | Estilos de la celda de usuario, los badges y las casillas de roles |
+
+#### Conceptos
+
+- **Regla que cruza campos con `superRefine`:** "rol Jugador necesita jugador" depende de dos campos. Se valida sobre el objeto entero y el error se asigna a `jugadorId` con `path`. Es un `RuleFor(x => x).Must(...).WithName("JugadorId")` de FluentValidation. La repetición de la contraseña usa `refine` con la misma idea.
+- **Un esquema por modo:** `crearEsquemaUsuario(esAlta)` exige la contraseña solo en el alta. Es como dos validadores de FluentValidation, uno para el comando de crear y otro para el de modificar.
+- **Campo con varias casillas:** `CampoRoles` usa un solo `useController` cuyo valor es la lista de roles. Cada casilla agrega o quita su rol. En Blazor sería un `SfCheckBox` por ítem enlazado a una `List<Rol>`.
+- **Campo que aparece según otro:** `useWatch` sobre `roles` vuelve a dibujar el formulario al marcar o desmarcar Jugador. Es el `@if` de Razor sobre una propiedad del modelo.
+- **Invalidar dos claves:** crear, modificar o borrar un usuario cambia qué jugadores están libres. Por eso las mutaciones invalidan también `['jugadores']` y la lista del formulario siempre está al día.
+- **Ocultar el borrado de la propia fila** es para la experiencia de uso. La regla real la aplica el backend con un 409, igual que los permisos de S-5.
+
+#### Cómo se probó
+
+En el navegador, con el Administrador del seed, contra la API en Azure:
+- **Menú y grilla:**
+  - El menú muestra "Usuarios".
+  - La grilla lista los 3 usuarios del seed con sus badges y "Díaz, Matías" asociado al Jugador.
+  - La fila propia dice "(vos)" y no tiene botón de borrar.
+- **Alta:**
+  - Enviado vacío, muestra "El email es obligatorio." y "La contraseña es obligatoria.".
+  - Al marcar Jugador aparece la lista, que no incluye a Díaz porque ya tiene usuario.
+  - Una contraseña de 5 caracteres muestra el mensaje de 12 caracteres.
+  - Con datos válidos, el usuario se crea asociado a "Acosta, Agustín" y aparece el aviso.
+- **Modificación:**
+  - Al cambiar Jugador por Asistente, la columna del jugador queda en "—".
+  - Al quitarme mi propio rol de Administrador, el formulario muestra el 409 del backend.
+- **Contraseña:** una repetición distinta muestra "Las contraseñas no coinciden."; con la repetición correcta aparece el aviso de éxito.
+- **Baja:** con confirmación; la fila desaparece.
+- **Celular (375 px):** solo las columnas de email y acciones, con los roles y el jugador debajo del email.
+- **Consola:** sin errores en todo el ciclo de alta, modificación, contraseña, baja, navegación y cambio de tamaño. Mientras se editaba el código aparecieron errores `insertBefore`, pero vienen de la recarga en caliente de Vite con la grilla de Syncfusion abierta y no se repiten con la página recién cargada.
 
 ## Etapa 11 — Aprobación directa
 
