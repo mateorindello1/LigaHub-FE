@@ -18,6 +18,12 @@ export const clavesConsulta = {
   detalleEquipo: (torneoId: number, equipoId: number) =>
     ['torneos', torneoId, 'equipos', equipoId] as const,
   fixture: (torneoId: number) => ['torneos', torneoId, 'fixture'] as const,
+  goleadores: (torneoId: number) =>
+    ['torneos', torneoId, 'goleadores'] as const,
+  suspensiones: (torneoId: number) =>
+    ['torneos', torneoId, 'suspensiones'] as const,
+  /** Todas las planillas: un resultado cambia las suspensiones de otros partidos. */
+  partidos: ['partidos'] as const,
   equipos: ['equipos'] as const,
   equipo: (id: number) => ['equipos', id] as const,
   usuarios: ['usuarios'] as const,

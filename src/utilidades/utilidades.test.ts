@@ -9,6 +9,8 @@ import {
 import { formatearDiferencia, normalizarParaBuscar } from './formato';
 import { inicialesDe } from './iniciales';
 import { calcularMarcador } from './marcador';
+import type { Sancion } from '../modelos/suspensiones';
+import { describirSancion } from './suspensiones';
 
 /** Tests unitarios de la lógica sin componentes: funciones puras y esquemas de validación. */
 
@@ -135,5 +137,72 @@ describe('esDireccionWeb', () => {
   ])('"%s" → %s', (texto, esperado) => {
     // Act y Assert
     expect(esDireccionWeb(texto)).toBe(esperado);
+  });
+});
+
+describe('describirSancion', () => {
+  /** Sanción de una fecha por expulsión, que se cumple en los partidos indicados. */
+  const sancion = (
+    partidos: Sancion['partidos'],
+    datos: Partial<Sancion> = {},
+  ): Sancion => ({
+    inscripcionJugadorId: 'i1',
+    jugador: { id: 1, nombres: 'Juan', apellidos: 'Pérez' },
+    equipo: { id: 1, nombre: 'Alfa' },
+    motivo: 'Expulsion',
+    numeroFecha: 2,
+    fechas: partidos.length || 1,
+    partidos,
+    cumplida: partidos.length > 0 && partidos.every((p) => p.cumplida),
+    ...datos,
+  });
+
+  it('expulsión pendiente en una fecha', () => {
+    // Act
+    const textos = describirSancion(
+      sancion([{ partidoId: 'p3', numeroFecha: 3, cumplida: false }]),
+    );
+
+    // Assert
+    expect(textos).toEqual({
+      textoMotivo: 'Expulsión',
+      noJuega: 'Fecha 3',
+      estado: 'Pendiente',
+    });
+  });
+
+  it('por amarillas, cumplida en varias fechas', () => {
+    // Act
+    const textos = describirSancion(
+      sancion(
+        [3, 4, 5].map((n) => ({
+          partidoId: `p${n}`,
+          numeroFecha: n,
+          cumplida: true,
+        })),
+        { motivo: 'Amonestaciones' },
+      ),
+    );
+
+    // Assert
+    expect(textos).toEqual({
+      textoMotivo: '5 amarillas',
+      noJuega: 'Fechas 3, 4 y 5',
+      estado: 'Cumplida',
+    });
+  });
+
+  it('sin partidos restantes para cumplirla', () => {
+    // Act y Assert
+    expect(describirSancion(sancion([], { fechas: 1 })).noJuega).toBe(
+      'Sin partidos restantes',
+    );
+    expect(
+      describirSancion(
+        sancion([{ partidoId: 'p5', numeroFecha: 5, cumplida: false }], {
+          fechas: 2,
+        }),
+      ).noJuega,
+    ).toBe('Fecha 5 (y 1 fecha sin partido asignado)');
   });
 });

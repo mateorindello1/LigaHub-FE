@@ -37,6 +37,35 @@ test.describe('Navegación pública', () => {
     await expect(page.getByText('Volver a la tabla')).toBeVisible();
   });
 
+  test('goleadores y suspensiones del torneo en curso, sin iniciar sesión', async ({
+    page,
+  }) => {
+    const menu = page.getByRole('navigation', { name: 'Navegación principal' });
+
+    // Act: inicio → Goleadores (por defecto, el torneo en curso).
+    await page.goto('/');
+    await menu.getByRole('link', { name: 'Goleadores' }).click();
+
+    // Assert: Apertura tiene fechas jugadas, así que hay goleadores; el primero va en la posición 1.
+    await expect(page).toHaveURL(/\/goleadores/);
+    const goleadores = page.locator('.e-grid .e-row');
+    await expect(goleadores.first()).toBeVisible();
+    await expect(goleadores.first().locator('td').first()).toHaveText('1');
+
+    // Act: Suspensiones.
+    await menu.getByRole('link', { name: 'Suspensiones' }).click();
+
+    // Assert: las dos secciones y la explicación de las reglas.
+    await expect(page).toHaveURL(/\/suspensiones/);
+    await expect(
+      page.getByRole('heading', { name: 'Sanciones' }),
+    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Tarjetas' })).toBeVisible();
+    await expect(
+      page.getByText('Una expulsión suspende una fecha.', { exact: false }),
+    ).toBeVisible();
+  });
+
   test('una pantalla de administración lleva al login', async ({ page }) => {
     // Act
     await page.goto('/torneos');

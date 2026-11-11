@@ -228,7 +228,8 @@ h1 {
   gap: 4px;
 }
 
-.celda-torneo {
+.celda-torneo,
+.celda-dos-lineas {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -523,6 +524,7 @@ h1 {
 
 /* Las celdas de la grilla no cortan líneas; los nombres largos sí pueden ocupar dos. */
 .enlace-equipo span:last-child,
+.celda-dos-lineas span,
 .texto-ajustable {
   white-space: normal;
   line-height: 1.25;
@@ -626,10 +628,16 @@ h1 {
   gap: 24px;
 }
 
-.detalle-equipo__secciones h2 {
+.detalle-equipo__secciones h2,
+.seccion-listado h2 {
   margin: 0 0 12px;
   font-size: 1.125rem;
   font-weight: 500;
+}
+
+/* Secciones de una pantalla de listado con más de una grilla (Suspensiones). */
+.seccion-listado {
+  margin-top: 24px;
 }
 
 .resultado-partido,

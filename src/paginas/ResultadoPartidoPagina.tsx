@@ -386,7 +386,10 @@ function EditorPlanilla({ planilla }: { planilla: PlanillaPartido }) {
                 onCambiar={(id, jugo) => cambiarJugo([id], jugo)}
                 onTodos={(jugo) =>
                   cambiarJugo(
-                    equipo.plantel.map((j) => j.inscripcionJugadorId),
+                    // "Todos" no anota a los suspendidos; "Ninguno" sí los saca.
+                    equipo.plantel
+                      .filter((j) => !jugo || !j.suspendido)
+                      .map((j) => j.inscripcionJugadorId),
                     jugo,
                   )
                 }

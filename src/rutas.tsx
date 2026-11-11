@@ -134,6 +134,20 @@ export const router = createBrowserRouter([
             }),
           },
           {
+            path: 'goleadores',
+            lazy: async () => ({
+              Component: (await import('./paginas/GoleadoresPagina'))
+                .GoleadoresPagina,
+            }),
+          },
+          {
+            path: 'suspensiones',
+            lazy: async () => ({
+              Component: (await import('./paginas/SuspensionesPagina'))
+                .SuspensionesPagina,
+            }),
+          },
+          {
             path: 'fixture',
             lazy: async () => ({
               Component: (await import('./paginas/FixturePagina'))

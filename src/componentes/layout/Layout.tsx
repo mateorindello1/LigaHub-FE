@@ -37,6 +37,8 @@ const OPCIONES_MENU: ItemMenu[] = [
   { ruta: '/inscripciones', texto: 'Inscripciones', icono: 'e-checklist' },
   { ruta: '/posiciones', texto: 'Posiciones', icono: 'e-chart' },
   { ruta: '/fixture', texto: 'Fixture', icono: 'e-month' },
+  { ruta: '/goleadores', texto: 'Goleadores', icono: 'e-star-filled' },
+  { ruta: '/suspensiones', texto: 'Suspensiones', icono: 'e-warning' },
   {
     ruta: '/mis-datos',
     texto: 'Mis datos',

@@ -6,18 +6,20 @@ import { partidosServicio } from '../servicios/partidos.servicio';
 /*
  * Hooks del caso de uso "cargar el resultado de un partido" (ver torneos.hooks.ts).
  * Cargar o anular un resultado invalida:
- * - ['partidos', id]: la planilla.
- * - ['torneos', torneoId]: el fixture, la tabla de posiciones y el detalle de los equipos, que se
- *   calculan a partir de los partidos. Así la tabla "se actualiza sola" también en pantalla.
+ * - ['partidos']: la planilla y las de los demás partidos, porque una expulsión o una amarilla
+ *   cambia quién está suspendido en los partidos siguientes.
+ * - ['torneos', torneoId]: el fixture, la tabla de posiciones, el detalle de los equipos, los
+ *   goleadores y las suspensiones, que se calculan a partir de los partidos. Así "se actualizan
+ *   solos" también en pantalla.
  * - ['jugadores']: un jugador que jugó ya no se puede dar de baja del plantel.
  */
 
-function useInvalidarResultado(id: string, torneoId: number) {
+function useInvalidarResultado(torneoId: number) {
   const clienteConsultas = useQueryClient();
   return () =>
     Promise.all(
       [
-        clavesConsulta.partido(id),
+        clavesConsulta.partidos,
         clavesConsulta.torneo(torneoId),
         clavesConsulta.jugadores,
       ].map((clave) => clienteConsultas.invalidateQueries({ queryKey: clave })),
@@ -34,7 +36,7 @@ export function usePlanilla(id: string) {
 
 /** Carga (o reemplaza) el resultado del partido. */
 export function useCargarResultado(id: string, torneoId: number) {
-  const invalidar = useInvalidarResultado(id, torneoId);
+  const invalidar = useInvalidarResultado(torneoId);
   return useMutation({
     mutationFn: (datos: CargarResultado) =>
       partidosServicio.cargarResultado(id, datos),
@@ -44,7 +46,7 @@ export function useCargarResultado(id: string, torneoId: number) {
 
 /** Anula el resultado: el partido vuelve a Programado. */
 export function useAnularResultado(id: string, torneoId: number) {
-  const invalidar = useInvalidarResultado(id, torneoId);
+  const invalidar = useInvalidarResultado(torneoId);
   return useMutation({
     mutationFn: () => partidosServicio.anularResultado(id),
     onSuccess: invalidar,

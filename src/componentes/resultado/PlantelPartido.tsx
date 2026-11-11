@@ -15,7 +15,11 @@ interface Props {
   deshabilitado?: boolean;
 }
 
-/** Plantel de un equipo con una casilla "jugó" por jugador. */
+/**
+ * Plantel de un equipo con una casilla "jugó" por jugador. Un jugador que cumple una suspensión en
+ * este partido aparece marcado y no se puede anotar ("Todos" lo saltea). Si igual figura como que
+ * jugó (una planilla cargada antes de la sanción), la casilla queda habilitada para sacarlo.
+ */
 export function PlantelPartido({
   equipo,
   jugaron,
@@ -64,18 +68,24 @@ export function PlantelPartido({
             </ButtonComponent>
           </div>
           <ul className="plantel-partido__lista">
-            {equipo.plantel.map((jugador) => (
-              <li key={jugador.inscripcionJugadorId}>
-                <CheckBoxComponent
-                  label={`${jugador.dorsal} · ${jugador.apellidos}, ${jugador.nombres}${jugador.capitan ? ' (C)' : ''}`}
-                  checked={jugaron.has(jugador.inscripcionJugadorId)}
-                  disabled={deshabilitado}
-                  change={(e) =>
-                    onCambiar(jugador.inscripcionJugadorId, Boolean(e.checked))
-                  }
-                />
-              </li>
-            ))}
+            {equipo.plantel.map((jugador) => {
+              const jugo = jugaron.has(jugador.inscripcionJugadorId);
+              return (
+                <li key={jugador.inscripcionJugadorId}>
+                  <CheckBoxComponent
+                    label={`${jugador.dorsal} · ${jugador.apellidos}, ${jugador.nombres}${jugador.capitan ? ' (C)' : ''}${jugador.suspendido ? ' — suspendido' : ''}`}
+                    checked={jugo}
+                    disabled={deshabilitado || (jugador.suspendido && !jugo)}
+                    change={(e) =>
+                      onCambiar(
+                        jugador.inscripcionJugadorId,
+                        Boolean(e.checked),
+                      )
+                    }
+                  />
+                </li>
+              );
+            })}
           </ul>
         </>
       )}

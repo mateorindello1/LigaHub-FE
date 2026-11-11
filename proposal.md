@@ -174,6 +174,6 @@ Adicionales para Aprobación:
 
 |Req|Detalle|Estado|
 |:-|:-|:-|
-|Listados |1. Goleadores filtrados por torneo, muestra jugador, equipo y goles<br>2. Fixture filtrado por torneo, muestra cada fecha con sus partidos, resultado, día, hora y cancha|1. Pendiente<br>2. Hecho|
-|CUU/Epic|1. Deshacer el fixture mientras no haya partidos jugados<br>2. Calcular suspensiones a partir de las tarjetas de cada partido|1. Hecho<br>2. Pendiente|
+|Listados |1. Goleadores filtrados por torneo, muestra jugador, equipo y goles<br>2. Fixture filtrado por torneo, muestra cada fecha con sus partidos, resultado, día, hora y cancha|1. Hecho<br>2. Hecho|
+|CUU/Epic|1. Deshacer el fixture mientras no haya partidos jugados<br>2. Calcular suspensiones a partir de las tarjetas de cada partido (expulsión: 1 fecha; 5 amarillas acumuladas: 1 fecha); un jugador suspendido no se puede anotar en la planilla|1. Hecho<br>2. Hecho|
 |Otros|1. Acceso de los jugadores para consultar y actualizar sus datos<br>2. Foto de perfil de cada usuario: subir un archivo, pegar una imagen o usar la dirección de una imagen de internet|1. Hecho<br>2. Hecho|

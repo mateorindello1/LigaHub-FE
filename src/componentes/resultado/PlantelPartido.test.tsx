@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { EquipoPlanilla } from '../../modelos/partido';
 import { PlantelPartido } from './PlantelPartido';
 
-/** Equipo con tres jugadores; el capitán es el dorsal 10. */
+/** Equipo con tres jugadores; el capitán es el dorsal 10 y el 5 está suspendido. */
 const EQUIPO: EquipoPlanilla = {
   id: 1,
   nombre: 'Los Halcones',
@@ -17,6 +17,7 @@ const EQUIPO: EquipoPlanilla = {
     dorsal,
     capitan: dorsal === 10,
     jugo: false,
+    suspendido: dorsal === 5,
   })),
 };
 
@@ -44,7 +45,9 @@ describe('PlantelPartido', () => {
     // Assert
     expect(screen.getByText('Jugaron 2 de 3')).toBeInTheDocument();
     expect(screen.getByLabelText('1 · Número 1, Jugador')).toBeChecked();
-    expect(screen.getByLabelText('5 · Número 5, Jugador')).not.toBeChecked();
+    expect(
+      screen.getByLabelText('5 · Número 5, Jugador — suspendido'),
+    ).not.toBeChecked();
     expect(screen.getByLabelText('10 · Número 10, Jugador (C)')).toBeChecked();
   });
 
@@ -53,10 +56,10 @@ describe('PlantelPartido', () => {
     const { onCambiar } = dibujar([]);
 
     // Act
-    await userEvent.click(screen.getByLabelText('5 · Número 5, Jugador'));
+    await userEvent.click(screen.getByLabelText('1 · Número 1, Jugador'));
 
     // Assert
-    expect(onCambiar).toHaveBeenCalledWith('i5', true);
+    expect(onCambiar).toHaveBeenCalledWith('i1', true);
   });
 
   it('"Todos" y "Ninguno" avisan para todo el plantel', async () => {
@@ -78,6 +81,32 @@ describe('PlantelPartido', () => {
 
     // Assert
     expect(screen.getByRole('button', { name: 'Todos' })).toBeDisabled();
-    expect(screen.getByLabelText('5 · Número 5, Jugador')).toBeDisabled();
+    expect(
+      screen.getByLabelText('5 · Número 5, Jugador — suspendido'),
+    ).toBeDisabled();
+  });
+
+  it('un suspendido no se puede anotar, pero si figura como que jugó se lo puede sacar', () => {
+    // Act: primero sin marcar; después, marcado (una planilla cargada antes de la sanción).
+    const { unmount } = render(
+      <PlantelPartido
+        equipo={EQUIPO}
+        jugaron={new Set()}
+        onCambiar={vi.fn()}
+        onTodos={vi.fn()}
+      />,
+    );
+    const sinMarcar = screen.getByLabelText(
+      '5 · Número 5, Jugador — suspendido',
+    );
+    expect(sinMarcar).toBeDisabled();
+    unmount();
+    dibujar(['i5']);
+
+    // Assert
+    expect(
+      screen.getByLabelText('5 · Número 5, Jugador — suspendido'),
+    ).toBeEnabled();
+    expect(screen.getByLabelText('1 · Número 1, Jugador')).toBeEnabled();
   });
 });

@@ -1041,6 +1041,7 @@ Subetapas con la misma numeración en los planes del backend y del frontend. Req
 | AD-5 | Tests que faltan | Sí | Sí | Hecha |
 | AD-6 | Ambientes y deploy | Sí | Sí | Pendiente |
 | Extra | Fotos de perfil en Azure Blob Storage (Azurite en desarrollo): archivo, pegar o dirección de internet | Sí | Sí | Hecha |
+| Voluntario | Goleadores y suspensiones (alcance adicional voluntario de la proposal) | Sí | Sí | Hecha |
 
 ### AD-2 — Jugadores, planteles y "Mis datos"
 
@@ -1490,6 +1491,51 @@ El diálogo tiene ahora tres formas de elegir la foto, y en todas se sube ensegu
 
   Con tres tests separados, la suite hacía 6 logins en un minuto y el último recibía 429 por el límite de intentos: falló `sesion.spec.ts`. Pasan los 7.
 - **A mano:** con la dirección del logo de Google, la barra y el diálogo muestran la foto recortada.
+
+### Voluntario — Goleadores y suspensiones
+
+**Estado:** Hecha (2026-11-11)
+
+Dos pantallas públicas nuevas en el menú, con el mismo filtro por torneo que Posiciones (por defecto, el torneo en curso). Los datos los calcula el backend a partir de las planillas; las reglas de las suspensiones están en su plan de desarrollo.
+
+- **Goleadores:** posición, jugador, equipo (enlace al detalle del equipo, como en Posiciones), partidos jugados y goles. A igual cantidad de goles se comparte la posición.
+- **Suspensiones:** dos grillas.
+  - **Sanciones:** jugador, equipo, motivo y fecha ("Expulsión en la fecha 3"), en qué fechas no juega y el estado (Pendiente o Cumplida).
+  - **Tarjetas:** amarillas, rojas y cuántas lleva acumuladas para la próxima suspensión ("2 de 5").
+  - Debajo, las reglas en una línea, para que no haga falta un manual.
+- **Planilla del partido:** un jugador suspendido aparece como "— suspendido" y su casilla queda deshabilitada; "Todos" lo saltea. Si una planilla vieja ya lo tenía marcado, la casilla queda habilitada para sacarlo. Si igual se lo anota (por ejemplo, llamando a la API), el backend responde 409 y el mensaje aparece en la pantalla.
+
+#### Responsive
+
+En celular (SM) el equipo pasa debajo del nombre del jugador y, en Sanciones, el estado pasa debajo de "No juega". Es el mismo patrón que el estado del torneo en la pantalla Torneos (`solo-sm`). Los nombres largos ocupan dos líneas (`celda-dos-lineas`): la grilla de Syncfusion deja `line-height: 0` en las celdas, así que la clase le devuelve un alto de línea.
+
+#### Invalidación
+
+Cargar o anular un resultado invalida ahora `['partidos']` completo, y no solo la planilla de ese partido. Una expulsión cambia quién está suspendido en los partidos siguientes, y esas planillas pueden estar en la caché. Los goleadores y las suspensiones cuelgan de `['torneos', torneoId]`, que ya se invalidaba.
+
+#### Archivos
+
+| Archivo | Qué es |
+|:--|:--|
+| `src/paginas/GoleadoresPagina.tsx` | Nuevo: listado de goleadores con filtro por torneo |
+| `src/paginas/SuspensionesPagina.tsx` | Nuevo: sanciones y tarjetas con filtro por torneo |
+| `src/modelos/goleadores.ts`, `src/modelos/suspensiones.ts` | Nuevos: interfaces de las respuestas |
+| `src/servicios/goleadores.servicio.ts`, `src/servicios/suspensiones.servicio.ts` | Nuevos: los dos `GET` |
+| `src/hooks/estadisticas.hooks.ts` | Nuevo: `useGoleadores` y `useSuspensiones` |
+| `src/utilidades/suspensiones.ts` | Nuevo: `describirSancion`, textos de una sanción (función pura, con tests) |
+| `src/api/claves-consulta.ts` | Claves `goleadores`, `suspensiones` y `partidos` |
+| `src/hooks/resultados.hooks.ts` | Invalida todas las planillas |
+| `src/modelos/partido.ts` | `suspendido` en cada jugador de la planilla |
+| `src/componentes/resultado/PlantelPartido.tsx` | Marca y deshabilita al suspendido |
+| `src/paginas/ResultadoPartidoPagina.tsx` | "Todos" no anota a los suspendidos |
+| `src/rutas.tsx`, `src/componentes/layout/Layout.tsx` | Rutas `/goleadores` y `/suspensiones`, y sus opciones del menú |
+| `src/index.css` | `celda-dos-lineas` y `seccion-listado` |
+
+#### Cómo se probó
+
+- `pnpm test`: 45 tests (nuevos: el suspendido en `PlantelPartido` y `describirSancion`).
+- `pnpm test:e2e`: 8 tests (nuevo: Goleadores y Suspensiones sin sesión).
+- En el navegador, a 375 px y en escritorio, con Apertura del seed.
 
 ### AD-6 — Ambientes y deploy
 
