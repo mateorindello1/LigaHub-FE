@@ -21,6 +21,9 @@ export const clavesConsulta = {
   equipos: ['equipos'] as const,
   equipo: (id: number) => ['equipos', id] as const,
   usuarios: ['usuarios'] as const,
+  /** La foto cambia de identificador con cada subida: la clave lo incluye. */
+  fotoPerfil: (usuarioId: number, fotoPerfil: string) =>
+    ['usuarios', usuarioId, 'foto', fotoPerfil] as const,
   predios: ['predios'] as const,
   partido: (id: string) => ['partidos', id] as const,
   predio: (id: number) => ['predios', id] as const,

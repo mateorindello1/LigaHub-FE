@@ -31,6 +31,21 @@
   gap: 8px;
 }
 
+/* Botón con la foto: sin estilo de botón, solo la foto redonda con un borde al pasar el mouse. */
+.menu-sesion__avatar {
+  display: inline-flex;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.menu-sesion__avatar:hover,
+.menu-sesion__avatar:focus-visible {
+  border-color: currentColor;
+}
+
 .menu-sesion__usuario {
   display: none;
   flex-direction: column;

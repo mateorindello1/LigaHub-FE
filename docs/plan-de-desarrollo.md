@@ -1040,6 +1040,7 @@ Subetapas con la misma numeración en los planes del backend y del frontend. Req
 | AD-4 | Caso de uso: cargar el resultado de un partido | Sí | Sí | Hecha |
 | AD-5 | Tests que faltan | Sí | Sí | Hecha |
 | AD-6 | Ambientes y deploy | Sí | Sí | Pendiente |
+| Extra | Fotos de perfil en Azure Blob Storage (Azurite en desarrollo): archivo, pegar o dirección de internet | Sí | Sí | Hecha |
 
 ### AD-2 — Jugadores, planteles y "Mis datos"
 
@@ -1422,6 +1423,73 @@ Los end-to-end no corren en GitHub: necesitan la API y la base de Azure, que sol
 - **End-to-end:** pasan los 4 en tres corridas seguidas, contra Azure. Después, la base quedó como el seed.
 - **Calidad:** lint y compilación sin errores, incluidas las configuraciones y los tests end-to-end.
 - **Workflow:** simulado en una copia limpia.
+
+### Extra — Fotos de perfil
+
+**Estado:** Hecha (2026-11-11)
+
+Cada usuario toca su foto (o sus iniciales) en la barra superior y se abre un diálogo para elegir una imagen, cambiarla o quitarla. La foto se sube apenas se elige el archivo. El backend la guarda en Azure Blob Storage (Azurite en desarrollo); ver el plan del backend.
+
+#### Archivos
+
+| Archivo | Qué es |
+|:--|:--|
+| `src/componentes/sesion/AvatarUsuario.tsx` | Nuevo: la foto redonda, o las iniciales (del jugador asociado, o la primera letra del email) |
+| `src/componentes/sesion/DialogoFotoPerfil.tsx` | Nuevo: vista previa grande, "Elegir foto" / "Cambiar foto" y "Quitar foto" |
+| `src/componentes/sesion/MenuSesion.tsx` | La foto en la barra, como botón que abre el diálogo |
+| `src/hooks/fotos-perfil.hooks.ts` | Nuevo: `useFotoPerfil` (descarga la foto), `useSubirFotoPerfil` y `useQuitarFotoPerfil` (actualizan el usuario de la sesión) |
+| `src/servicios/fotos-perfil.servicio.ts` | Nuevo: `PUT` y `DELETE /usuarios/yo/foto`, `GET /usuarios/:id/foto` |
+| `src/validaciones/foto-perfil.validacion.ts` | Nuevo: tipo y tamaño antes de subir (la validación real es la del backend) |
+| `src/utilidades/iniciales.ts` | Nuevo: iniciales del usuario |
+| `src/api/cliente-api.ts` | `putArchivo` (envía un `FormData`), `obtenerArchivo` (devuelve un `Blob`) y `deleteConRespuesta` |
+| `src/api/sesion-guardada.ts` | `actualizarUsuario`: la barra muestra la foto nueva enseguida |
+| `src/api/claves-consulta.ts` | Clave de la foto, que incluye su identificador |
+| `src/modelos/sesion.ts`, `usuario.ts` | `fotoPerfilURL` → `fotoPerfil` |
+| `src/index.css`, `src/componentes/layout/Layout.css` | Estilos del avatar y del diálogo |
+| `playwright.config.ts` | También levanta Azurite (`pnpm storage:local` en el backend) |
+
+#### Conceptos
+
+- **La foto se pide con `fetch`, no con `<img src>`:** no es pública, y un `<img>` no puede enviar el encabezado `Authorization`. El hook la descarga como `Blob` (con TanStack Query, así no se vuelve a pedir) y `AvatarUsuario` la muestra con una dirección `blob:` creada con `URL.createObjectURL`.
+- **Liberar la memoria:** cada dirección `blob:` ocupa memoria hasta que se libera con `URL.revokeObjectURL`. Se crea en un efecto y se libera al cambiar la foto o al desmontar. Se asigna directo al `<img>` con una `ref`, sin `useState`: sincronizar con el DOM es justo para lo que sirven los efectos.
+- **La clave de la consulta incluye el identificador de la foto:** cada foto subida tiene otro nombre, así que una foto nueva es otra consulta y no hace falta invalidar nada; la misma foto no se vuelve a pedir (`staleTime: Infinity`).
+- **`FormData` sin `Content-Type`:** al subir un archivo, el navegador arma el encabezado `multipart/form-data` con el separador de las partes. Si el cliente pusiera `application/json` o su propio `multipart/form-data`, la API no podría leerlo.
+- **`<input type="file">` oculto:** el selector nativo no se puede estilar. Un botón de Syncfusion lo abre con `click()`, y `accept` limita los tipos que ofrece el explorador de archivos. Después de elegir se limpia el input, para que elegir el mismo archivo otra vez vuelva a funcionar.
+- **Validación en el navegador y en el servidor:** el frontend revisa tipo y tamaño para no subir 10 MB y recibir un 413. El backend revisa el contenido real del archivo, que es lo que importa.
+
+#### Cómo se probó
+
+- **Unitarios** (`pnpm test`, pasan 35):
+  - `cliente-api.test.ts`: el `FormData` se envía tal cual, sin `Content-Type` y con el token; la foto llega como `Blob` con su tipo.
+  - `utilidades.test.ts`: acepta JPG, PNG y WebP; rechaza GIF, PDF y más de 2 MB; iniciales del jugador o del email.
+- **End-to-end** (`pnpm test:e2e`, pasan los 7): `foto-perfil.spec.ts` (nuevo) inicia sesión como Asistente, ve sus iniciales en la barra, sube una imagen desde el diálogo, la barra muestra la foto y, al quitarla, vuelven las iniciales.
+- **En el navegador:** con el Jugador del seed, la barra muestra "MD" (Matías Díaz); con una foto de 900 × 600, la barra y el diálogo la muestran recortada cuadrada al centro.
+
+#### Ampliación: pegar una imagen o usar una dirección de internet
+
+El diálogo tiene ahora tres formas de elegir la foto, y en todas se sube enseguida:
+- **Archivo**, como antes.
+- **Pegar (Ctrl+V)** en cualquier parte del diálogo: una imagen copiada (una captura de pantalla, o "Copiar imagen" en el navegador) se sube igual que un archivo. Una dirección pegada fuera del campo de texto se usa directamente.
+- **Dirección de una imagen de internet**, en un campo con el botón "Usar". La descarga el backend, que no se conecta a direcciones internas (protección contra SSRF; ver el plan del backend). El navegador no puede descargarla: CORS no deja leer imágenes de otros sitios.
+
+| Archivo | Cambio |
+|:--|:--|
+| `src/componentes/sesion/DialogoFotoPerfil.tsx` | Escucha el evento `paste` del documento mientras está abierto; campo de la dirección con "Usar" |
+| `src/hooks/fotos-perfil.hooks.ts`, `src/servicios/fotos-perfil.servicio.ts` | `useSubirFotoDesdeUrl` → `PUT /usuarios/yo/foto/url` |
+| `src/validaciones/foto-perfil.validacion.ts` | `esDireccionWeb`: http o https |
+| `src/index.css` | Estilos del campo de la dirección |
+
+**Conceptos:**
+- **Evento `paste`:** el navegador lo dispara en el elemento con foco y sube hasta `document`. `clipboardData.files` trae las imágenes copiadas y `getData('text')`, el texto. Si el portapapeles trae una imagen, `preventDefault()` evita que además se pegue en el campo de texto.
+- **`useEffectEvent` (React 19.2):** el efecto se suscribe al evento una sola vez, pero la función ve siempre los valores actuales (si hay una subida en curso, por ejemplo). Sin esto, habría que volver a suscribirse en cada dibujo, o la función vería valores viejos. Es como suscribirse una vez a un evento en `OnInitialized` y que el handler lea los campos del componente.
+- **Nombre accesible del campo:** con etiqueta flotante, el TextBox de Syncfusion usa el placeholder como nombre del campo ("Dirección de una imagen"); un `aria-label` aparte no llega al `<input>`.
+
+**Cómo se probó:**
+- **Unitarios** (pasan 41): `esDireccionWeb` acepta http y https y rechaza `ftp:`, `javascript:` y una dirección sin protocolo.
+- **End-to-end:** `foto-perfil.spec.ts` es ahora un solo test con tres pasos, con un solo login: elegir y quitar, pegar una imagen con un evento `paste` y rechazar `http://127.0.0.1/foto.png` ("Esa dirección no está permitida.").
+
+  Con tres tests separados, la suite hacía 6 logins en un minuto y el último recibía 429 por el límite de intentos: falló `sesion.spec.ts`. Pasan los 7.
+- **A mano:** con la dirección del logo de Google, la barra y el diálogo muestran la foto recortada.
 
 ### AD-6 — Ambientes y deploy
 

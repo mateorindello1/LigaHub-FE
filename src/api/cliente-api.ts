@@ -5,6 +5,15 @@ import { sesionGuardada, type Sesion } from './sesion-guardada';
 
 type Metodo = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
+/** Opciones de un pedido. */
+interface OpcionesPedido {
+  /** Cuerpo: un objeto se envía como JSON; un FormData, como formulario multipart (archivos). */
+  cuerpo?: unknown;
+  signal?: AbortSignal;
+  /** Cómo leer la respuesta: JSON (por defecto) o archivo (Blob, por ejemplo una imagen). */
+  respuesta?: 'json' | 'archivo';
+}
+
 /** Margen antes del vencimiento del token de acceso en el que ya se pide uno nuevo. */
 const MARGEN_RENOVACION_MS = 30_000;
 
@@ -38,10 +47,12 @@ async function renovarSesion(): Promise<Sesion | null> {
 async function pedir<T>(
   metodo: Metodo,
   ruta: string,
-  cuerpo?: unknown,
-  signal?: AbortSignal,
+  opciones: OpcionesPedido = {},
   reintentar = true,
 ): Promise<T> {
+  const { cuerpo, signal, respuesta: tipoRespuesta = 'json' } = opciones;
+  // Con FormData no se pone Content-Type: lo arma el navegador, con el separador de las partes.
+  const esFormulario = cuerpo instanceof FormData;
   let sesion = sesionGuardada.obtener();
   if (
     sesion &&
@@ -52,7 +63,9 @@ async function pedir<T>(
   const token = sesion?.token;
 
   const encabezados: Record<string, string> = {};
-  if (cuerpo !== undefined) encabezados['Content-Type'] = 'application/json';
+  if (cuerpo !== undefined && !esFormulario) {
+    encabezados['Content-Type'] = 'application/json';
+  }
   if (token) encabezados.Authorization = `Bearer ${token}`;
 
   let respuesta: Response;
@@ -60,7 +73,11 @@ async function pedir<T>(
     respuesta = await fetch(`${entorno.apiUrl}${ruta}`, {
       method: metodo,
       headers: encabezados,
-      body: cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined,
+      body: esFormulario
+        ? cuerpo
+        : cuerpo !== undefined
+          ? JSON.stringify(cuerpo)
+          : undefined,
       // Envía y recibe la cookie del token de refresco (la API está en otro origen).
       credentials: 'include',
       signal,
@@ -80,6 +97,10 @@ async function pedir<T>(
   if (respuesta.status === 204) {
     return undefined as T;
   }
+  // Archivo: se devuelve el contenido binario. Los errores siguen viniendo en JSON.
+  if (respuesta.ok && tipoRespuesta === 'archivo') {
+    return (await respuesta.blob()) as T;
+  }
 
   const texto = await respuesta.text();
   const datos: unknown = texto ? JSON.parse(texto) : undefined;
@@ -90,7 +111,7 @@ async function pedir<T>(
     // credenciales incorrectas en el login) no cierra nada.
     if (respuesta.status === 401 && token) {
       if (reintentar && (await renovarSesion())) {
-        return pedir<T>(metodo, ruta, cuerpo, signal, false);
+        return pedir<T>(metodo, ruta, opciones, false);
       }
       sesionGuardada.borrar('vencida');
     }
@@ -102,9 +123,19 @@ async function pedir<T>(
 /** Cliente de la API: un método por verbo HTTP. Lo usan los servicios de cada recurso. */
 export const clienteApi = {
   get: <T>(ruta: string, signal?: AbortSignal) =>
-    pedir<T>('GET', ruta, undefined, signal),
-  post: <T>(ruta: string, cuerpo?: unknown) => pedir<T>('POST', ruta, cuerpo),
-  patch: <T>(ruta: string, cuerpo: unknown) => pedir<T>('PATCH', ruta, cuerpo),
-  put: <T>(ruta: string, cuerpo: unknown) => pedir<T>('PUT', ruta, cuerpo),
+    pedir<T>('GET', ruta, { signal }),
+  post: <T>(ruta: string, cuerpo?: unknown) =>
+    pedir<T>('POST', ruta, { cuerpo }),
+  patch: <T>(ruta: string, cuerpo: unknown) =>
+    pedir<T>('PATCH', ruta, { cuerpo }),
+  put: <T>(ruta: string, cuerpo: unknown) => pedir<T>('PUT', ruta, { cuerpo }),
+  /** DELETE que devuelve datos (por ejemplo, el usuario sin su foto). */
+  deleteConRespuesta: <T>(ruta: string) => pedir<T>('DELETE', ruta),
   delete: (ruta: string) => pedir<void>('DELETE', ruta),
+  /** Sube un formulario con archivos (multipart/form-data). */
+  putArchivo: <T>(ruta: string, formulario: FormData) =>
+    pedir<T>('PUT', ruta, { cuerpo: formulario }),
+  /** Descarga un archivo (por ejemplo, una imagen) con el token de la sesión. */
+  obtenerArchivo: (ruta: string, signal?: AbortSignal) =>
+    pedir<Blob>('GET', ruta, { signal, respuesta: 'archivo' }),
 };

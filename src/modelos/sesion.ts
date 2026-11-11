@@ -19,7 +19,11 @@ export const NOMBRES_ROL: Record<Rol, string> = {
 export interface UsuarioSesion {
   id: number;
   email: string;
-  fotoPerfilURL: string | null;
+  /**
+   * Identificador de la foto de perfil, o null si no tiene. La imagen se pide a la API
+   * (GET /usuarios/:id/foto); este valor cambia con cada foto nueva.
+   */
+  fotoPerfil: string | null;
   /** Jugador asociado (solo para usuarios con rol Jugador). */
   jugadorId: number | null;
   /** Nombre del jugador asociado, o null si no tiene. */

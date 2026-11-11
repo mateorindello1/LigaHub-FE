@@ -7,7 +7,7 @@ import { config, parse } from 'dotenv';
  * completa (frontend + API + base de Azure), como lo haría una persona.
  *
  * - Usa el Microsoft Edge instalado (channel 'msedge'): no hace falta descargar navegadores.
- * - Levanta el frontend y la API si no están corriendo; si ya lo están, los reutiliza.
+ * - Levanta el frontend, la API y Azurite si no están corriendo; si ya lo están, los reutiliza.
  *   La API es el repositorio hermano ../LigaHub-BE (los dos clonados en la misma carpeta).
  * - Los tests corren de a uno: comparten la base y modifican datos del seed (y los restauran).
  * - La contraseña de los usuarios del seed se lee de E2E_CONTRASENIA o, si no está, de
@@ -48,6 +48,14 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: [
+    {
+      // Azurite, el emulador de Azure Blob Storage (fotos de perfil). Si ya está corriendo, se reutiliza.
+      command: 'pnpm storage:local',
+      cwd: '../LigaHub-BE',
+      port: 10000,
+      reuseExistingServer: true,
+      timeout: 60_000,
+    },
     {
       command: 'pnpm start',
       cwd: '../LigaHub-BE',

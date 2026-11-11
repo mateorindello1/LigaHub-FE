@@ -17,7 +17,7 @@ function sesionCon(token: string, venceEnMs = 15 * 60_000): Sesion {
     usuario: {
       id: 1,
       email: 'prueba@ligahub.test',
-      fotoPerfilURL: null,
+      fotoPerfil: null,
       jugadorId: null,
       jugador: null,
       roles: [Rol.Administrador],
@@ -123,5 +123,60 @@ describe('clienteApi con token de refresco', () => {
 
     // Assert
     expect(refrescos(fetchSimulado)).toBe(1);
+  });
+});
+
+describe('clienteApi con archivos', () => {
+  beforeEach(() => {
+    sesionGuardada.guardar(sesionCon('nuevo'));
+  });
+
+  afterEach(() => {
+    sesionGuardada.borrar('cierre', false);
+    vi.unstubAllGlobals();
+  });
+
+  it('sube un FormData tal cual, sin Content-Type (lo arma el navegador)', async () => {
+    // Arrange
+    const fetchSimulado = vi.fn(() => Promise.resolve(json(200, { id: 1 })));
+    vi.stubGlobal('fetch', fetchSimulado);
+    const formulario = new FormData();
+    formulario.append('foto', new Blob(['x'], { type: 'image/png' }));
+
+    // Act
+    await clienteApi.putArchivo('/usuarios/yo/foto', formulario);
+
+    // Assert
+    const [, opciones] = fetchSimulado.mock.calls[0] as unknown as [
+      string,
+      RequestInit,
+    ];
+    expect(opciones.body).toBe(formulario);
+    expect(opciones.headers).not.toHaveProperty('Content-Type');
+    expect(opciones.headers).toHaveProperty('Authorization', 'Bearer nuevo');
+  });
+
+  it('descarga un archivo como Blob', async () => {
+    // Arrange
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          // Como la API: el tipo viene en el encabezado Content-Type.
+          new Response('imagen', {
+            status: 200,
+            headers: { 'Content-Type': 'image/webp' },
+          }),
+        ),
+      ),
+    );
+
+    // Act
+    const archivo = await clienteApi.obtenerArchivo('/usuarios/1/foto');
+
+    // Assert
+    expect(archivo).toBeInstanceOf(Blob);
+    expect(archivo.type).toBe('image/webp');
+    expect(await archivo.text()).toBe('imagen');
   });
 });

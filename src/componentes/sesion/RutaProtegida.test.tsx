@@ -15,7 +15,7 @@ function usuarioCon(...roles: Rol[]): UsuarioSesion {
   return {
     id: 1,
     email: 'prueba@ligahub.test',
-    fotoPerfilURL: null,
+    fotoPerfil: null,
     jugadorId: null,
     jugador: null,
     roles,

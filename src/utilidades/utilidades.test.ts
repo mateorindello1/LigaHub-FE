@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { TipoEvento } from '../modelos/partido';
 import { esquemaEvento } from '../validaciones/evento.validacion';
+import {
+  esDireccionWeb,
+  TAMANIO_MAXIMO_FOTO,
+  validarFotoPerfil,
+} from '../validaciones/foto-perfil.validacion';
 import { formatearDiferencia, normalizarParaBuscar } from './formato';
+import { inicialesDe } from './iniciales';
 import { calcularMarcador } from './marcador';
 
 /** Tests unitarios de la lógica sin componentes: funciones puras y esquemas de validación. */
@@ -70,5 +76,64 @@ describe('esquemaEvento', () => {
       'El minuto tiene que ser un entero entre 0 y 130.',
     ]);
     expect(errores({ ...gol, minuto: 0 })).toEqual([]);
+  });
+});
+
+describe('validarFotoPerfil', () => {
+  /** Archivo de prueba con el tipo y el tamaño indicados. */
+  const archivo = (tipo: string, tamanio = 1024) =>
+    new File([new Uint8Array(tamanio)], 'foto', { type: tipo });
+
+  it.each(['image/jpeg', 'image/png', 'image/webp'])('acepta %s', (tipo) => {
+    // Act y Assert
+    expect(validarFotoPerfil(archivo(tipo))).toBeNull();
+  });
+
+  it('rechaza otros tipos de archivo', () => {
+    // Act y Assert
+    expect(validarFotoPerfil(archivo('image/gif'))).toContain(
+      'JPG, PNG o WebP',
+    );
+    expect(validarFotoPerfil(archivo('application/pdf'))).not.toBeNull();
+  });
+
+  it('rechaza un archivo de más de 2 MB', () => {
+    // Act y Assert
+    expect(
+      validarFotoPerfil(archivo('image/png', TAMANIO_MAXIMO_FOTO + 1)),
+    ).toContain('2 MB');
+  });
+});
+
+describe('inicialesDe', () => {
+  it('usa el nombre y el apellido del jugador asociado', () => {
+    // Act y Assert
+    expect(
+      inicialesDe({
+        email: 'jugador@ligahub.test',
+        jugador: { id: 1, nombres: 'matías', apellidos: 'Díaz' },
+      }),
+    ).toBe('MD');
+  });
+
+  it('sin jugador, usa la primera letra del email', () => {
+    // Act y Assert
+    expect(
+      inicialesDe({ email: 'asistente@ligahub.test', jugador: null }),
+    ).toBe('A');
+  });
+});
+
+describe('esDireccionWeb', () => {
+  it.each([
+    ['https://ejemplo.com/foto.png', true],
+    ['  http://ejemplo.com/a.jpg  ', true],
+    ['ftp://ejemplo.com/foto.png', false],
+    ['javascript:alert(1)', false],
+    ['ejemplo.com/foto.png', false],
+    ['', false],
+  ])('"%s" → %s', (texto, esperado) => {
+    // Act y Assert
+    expect(esDireccionWeb(texto)).toBe(esperado);
   });
 });

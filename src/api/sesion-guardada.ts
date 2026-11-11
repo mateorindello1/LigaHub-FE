@@ -1,4 +1,4 @@
-import type { RespuestaLogin } from '../modelos/sesion';
+import type { RespuestaLogin, UsuarioSesion } from '../modelos/sesion';
 
 /** Sesión activa: el token de acceso, su vencimiento y el usuario. */
 export type Sesion = RespuestaLogin;
@@ -57,6 +57,11 @@ export const sesionGuardada = {
     actual = sesion;
     ultimoMotivo = null;
     avisar();
+  },
+
+  /** Actualiza los datos del usuario (por ejemplo, su foto nueva) sin cambiar el token. */
+  actualizarUsuario(usuario: UsuarioSesion) {
+    if (actual) this.guardar({ ...actual, usuario });
   },
 
   /**
